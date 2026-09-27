@@ -30,7 +30,7 @@ from typing import Any
 
 from openai import OpenAI
 
-from agent_runtime import definition
+from agent_runtime import definition, lake_bus
 from agent_runtime.lake import Lake, LoadError
 from agent_runtime.loop import Context, Result, run_entrypoint, run_loop, system_message
 from agent_runtime.tools import Tool, all_tools
@@ -180,6 +180,26 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
     conversations = Conversations()
     model_client = client or OpenAI()
 
+    def handle_turn(turn: dict[str, Any]) -> dict[str, Any]:
+        """One turn, from /v1/turn or from lake's agent bus: the answer and its trace."""
+        message = turn.get("message") or turn.get("request")
+        if not message:
+            return {"ok": False, "error": "a turn needs a message"}
+        conversation = turn.get("conversation_id") or str(uuid.uuid4())
+        history = conversations.history(conversation, loaded)
+        turn_lake = None
+        try:
+            turn_loaded, turn_lake = per_turn(loaded, turn)
+            result = answer(turn_loaded, history, message, turn, model_client)
+        except Exception as error:
+            result = {"error": f"{type(error).__name__}: {error}"}
+        finally:
+            if turn_lake is not None:
+                turn_lake.close()
+        trace_id = record_trace(trace_dir, loaded.agent, "service", message, result)
+        return {"ok": "error" not in result, "conversation_id": conversation, "trace_id": trace_id,
+                **result}
+
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, body: dict[str, Any]) -> None:
             payload = json.dumps(body, default=str).encode()
@@ -209,25 +229,12 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
             except (json.JSONDecodeError, ValueError):
                 self._send(400, {"ok": False, "error": "the body is not JSON"})
                 return
-            message = (turn or {}).get("message") or (turn or {}).get("request")
-            if not message:
+            turn = turn if isinstance(turn, dict) else {}
+            if not (turn.get("message") or turn.get("request")):
                 self._send(400, {"ok": False, "error": "a turn needs a message"})
                 return
-            conversation = (turn or {}).get("conversation_id") or str(uuid.uuid4())
-            history = conversations.history(conversation, loaded)
-            turn_lake = None
-            try:
-                turn_loaded, turn_lake = per_turn(loaded, turn or {})
-                result = answer(turn_loaded, history, message, turn or {}, model_client)
-            except Exception as error:
-                result = {"error": f"{type(error).__name__}: {error}"}
-            finally:
-                if turn_lake is not None:
-                    turn_lake.close()
-            trace_id = record_trace(trace_dir, loaded.agent, "service", message, result)
-            ok = "error" not in result
-            self._send(200 if ok else 422, {"ok": ok, "conversation_id": conversation,
-                                            "trace_id": trace_id, **result})
+            reply = handle_turn(turn)
+            self._send(200 if reply["ok"] else 422, reply)
 
         def log_message(self, format: str, *args: Any) -> None:
             print(json.dumps({"agent-runtime": loaded.agent.id, "request": format % args}),
@@ -236,6 +243,10 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
     port = int(os.environ.get("PORT", "8080"))
     print(json.dumps({"agent-runtime": loaded.agent.id, "listening": port,
                       "tools": [tool.name for tool in loaded.tools]}), flush=True)
+    if os.environ.get("AGENT_PER_TURN_CREDENTIALS") == "1":
+        # A lake-wide library agent (AgentCreator) takes its turns from lake's agent bus
+        # (lake#269). A person's own agent never does: the operator gives it no bus credential.
+        lake_bus.start_from_env(handle_turn)
     ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
     return 0
 

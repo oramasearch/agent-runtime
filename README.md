@@ -62,6 +62,13 @@ Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, 
 agent's lake key), `CUSTOMER_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`, `OPENAI_API_KEY` (the
 general Orama key), `AGENT_MODEL` (default `gpt-5.5`), `TRACE_DIR`, `PORT`.
 
+**A lake-wide library agent on this runtime** (`AGENT_PER_TURN_CREDENTIALS=1`, AgentCreator) also
+takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`, lake#269). `lake_bus.py`
+long-polls `receive_agent_tasks` through lake with the agent's own bus credential
+(`AGENT_BUS_TOKEN`, `AGENT_BUS_AGENT`). It claims each task, answers it as `/v1/turn` would, and
+publishes `progress`, then the answer or `failed`. A person's own agent never takes tasks from the
+bus: the operator gives it no bus credential.
+
 Every run writes a **trace** to `TRACE_DIR`: input, every tool call with its observation or error,
 the answer. Traces never carry a credential.
 
