@@ -204,3 +204,30 @@ def test_a_job_runs_the_entrypoint_and_leaves_a_trace_without_the_key(tmp_path, 
     assert summaries[0]["reply"] == "ran {'week': 39}"
     trace = json.loads(next((tmp_path / "traces").glob("*.json")).read_text())
     assert "agent-token" not in json.dumps(trace)
+
+
+def test_a_definition_built_into_an_image_loads_in_place(tmp_path):
+    (tmp_path / "agent").mkdir()
+    (tmp_path / "agent" / "__init__.py").write_text("")
+    (tmp_path / "agent" / "main.py").write_text(
+        "def run(context):\n    return 'for ' + context.input['customer_id']\n")
+    (tmp_path / "agent.toml").write_text('entrypoint = "agent.main:run"\n')
+    (tmp_path / "record.json").write_text(json.dumps({"id": "agent-creator",
+                                                      "name": "AgentCreator"}))
+    record = definition.from_directory(tmp_path)
+    agent = definition.from_record(record)
+    assert agent.directory == tmp_path and agent.entrypoint == "agent.main:run"
+    loaded = runner.Loaded(agent, [], "gpt-5.5")
+    history: list = []
+    answer = runner.answer(loaded, history, "make me an agent", {"customer_id": "c-9"}, None)
+    assert answer["reply"] == "for c-9"
+    assert [m["role"] for m in history] == ["user", "assistant"]
+
+
+def test_a_lake_wide_agent_needs_the_persons_key_on_every_turn(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_PER_TURN_CREDENTIALS", "1")
+    monkeypatch.setenv("LAKE_URL", "http://lake")
+    agent = definition.from_record(record(definition={"source": "zetta", "files": []}),
+                                   workdir=tmp_path)
+    with pytest.raises(LoadError, match="lake_token"):
+        runner.per_turn(runner.Loaded(agent, [], "gpt-5.5"), {"message": "hi"})

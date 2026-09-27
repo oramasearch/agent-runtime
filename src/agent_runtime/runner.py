@@ -131,15 +131,52 @@ class Conversations:
             return self.messages.setdefault(conversation_id, [system_message(loaded.agent)])
 
 
+def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: dict[str, Any],
+           client: OpenAI) -> dict[str, Any]:
+    """One turn: the definition's own entrypoint when it has one, else the tool loop."""
+    if loaded.agent.entrypoint:
+        context = Context(loaded.agent, {"message": message, "history": list(history),
+                                         "page": turn.get("page") or {},
+                                         "customer_id": turn.get("customer_id") or ""},
+                          loaded.tools, client, loaded.model)
+        result = run_entrypoint(loaded.agent, context).as_dict()
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": result["reply"]})
+        return result
+    history.append({"role": "user", "content": message})
+    return run_loop(loaded.agent, loaded.tools, history, client, loaded.model).as_dict()
+
+
+def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]:
+    """A lake-wide agent (AGENT_PER_TURN_CREDENTIALS=1) works for whoever sent the turn: lake
+    hands over that person's key and space, and the tools are derived from their workspace."""
+    if os.environ.get("AGENT_PER_TURN_CREDENTIALS") != "1":
+        return loaded, None
+    token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
+    if not token or not customer:
+        raise LoadError("this agent works per turn: the turn needs lake_token and customer_id")
+    lake = Lake(os.environ["LAKE_URL"], token, customer)
+    try:
+        openapi = lake.zetta_openapi()
+    except Exception:  # a space without a ready workspace still gets an answer
+        openapi = {"paths": {}}
+    return Loaded(loaded.agent, all_tools(loaded.agent, lake, openapi), loaded.model), lake
+
+
 def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) -> int:
     trace_dir = Path(os.environ.get("TRACE_DIR", "/tmp/agent-runtime-traces"))
     token = os.environ.get("AGENT_SERVICE_TOKEN", "")
-    lake = lake_from_environment()
-    try:
-        loaded = load(lake, os.environ.get("AGENT_ID", ""), record)
-    except LoadError as error:
-        print(json.dumps({"agent-runtime": "cannot load", "error": str(error)}), flush=True)
-        return 1
+    if os.environ.get("AGENT_PER_TURN_CREDENTIALS") == "1":
+        loaded = Loaded(definition.from_record(record or {}), [],
+                        (record or {}).get("model_name")
+                        or os.environ.get("AGENT_MODEL", DEFAULT_MODEL))
+    else:
+        lake = lake_from_environment()
+        try:
+            loaded = load(lake, os.environ.get("AGENT_ID", ""), record)
+        except LoadError as error:
+            print(json.dumps({"agent-runtime": "cannot load", "error": str(error)}), flush=True)
+            return 1
     conversations = Conversations()
     model_client = client or OpenAI()
 
@@ -178,12 +215,15 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
                 return
             conversation = (turn or {}).get("conversation_id") or str(uuid.uuid4())
             history = conversations.history(conversation, loaded)
-            history.append({"role": "user", "content": message})
+            turn_lake = None
             try:
-                result = run_loop(loaded.agent, loaded.tools, history, model_client,
-                                  loaded.model).as_dict()
+                turn_loaded, turn_lake = per_turn(loaded, turn or {})
+                result = answer(turn_loaded, history, message, turn or {}, model_client)
             except Exception as error:
                 result = {"error": f"{type(error).__name__}: {error}"}
+            finally:
+                if turn_lake is not None:
+                    turn_lake.close()
             trace_id = record_trace(trace_dir, loaded.agent, "service", message, result)
             ok = "error" not in result
             self._send(200 if ok else 422, {"ok": ok, "conversation_id": conversation,
@@ -207,10 +247,16 @@ def main() -> int:
     parser.add_argument("--agent-id", default=None, help="overrides AGENT_ID")
     parser.add_argument("--record", type=Path, default=None,
                         help="an agent record as JSON, instead of reading it from the workspace")
+    parser.add_argument("--definition-dir", type=Path,
+                        default=Path(os.environ["AGENT_DEFINITION_DIR"])
+                        if os.environ.get("AGENT_DEFINITION_DIR") else None,
+                        help="a definition built into the image (record.json beside its files)")
     args = parser.parse_args()
     if args.agent_id:
         os.environ["AGENT_ID"] = args.agent_id
     record = json.loads(args.record.read_text()) if args.record else None
+    if args.definition_dir:
+        record = definition.from_directory(args.definition_dir)
     return serve(record) if args.mode == "service" else job(record)
 
 

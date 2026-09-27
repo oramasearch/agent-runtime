@@ -18,6 +18,7 @@ what keeps "no image per agent" true without downloading arbitrary code.
 
 from __future__ import annotations
 
+import json
 import tempfile
 import tomllib
 from dataclasses import dataclass, field
@@ -60,6 +61,18 @@ class Agent:
         return "\n\n".join(part for part in parts if part)
 
 
+def from_directory(directory: Path) -> dict[str, Any]:
+    """The record of a definition built into an image: `record.json` beside its files."""
+    record_path = directory / "record.json"
+    if not record_path.exists():
+        raise LoadError(f"no record.json in {directory}")
+    record = json.loads(record_path.read_text())
+    record["runtime"] = "python"
+    record["definition"] = {**(record.get("definition") or {}), "source": "dir",
+                            "path": str(directory)}
+    return record
+
+
 def safe_path(root: Path, relative: str) -> Path:
     """A definition's file, never outside the definition's own directory."""
     target = (root / relative).resolve()
@@ -83,7 +96,15 @@ def from_record(record: dict[str, Any], lake: Lake | None = None,
         raise LoadError(f"agent '{record.get('name')}' runs {runtime}, not on agent-runtime")
     definition = record.get("definition") or {}
     source = definition.get("source")
-    if source == "zetta":
+    if source == "dir":
+        # A definition built into an image layered on this runtime (a specialized Orama agent
+        # such as AgentCreator): read in place, never copied.
+        directory = Path(definition.get("path", ""))
+        files = {str(path.relative_to(directory)): path.read_text()
+                 for path in directory.rglob("*") if path.is_file() and "__pycache__" not in
+                 path.parts}
+        workdir = workdir or directory
+    elif source == "zetta":
         files = {item["path"]: item.get("contents", "") for item in definition.get("files") or []}
     elif source == "lake":
         if not definition.get("repository_id") or not definition.get("revision"):
@@ -95,7 +116,8 @@ def from_record(record: dict[str, Any], lake: Lake | None = None,
         raise LoadError("the definition's source must be 'zetta' or 'lake'")
 
     root = workdir or Path(tempfile.mkdtemp(prefix="agent-"))
-    materialize(files, root)
+    if source != "dir":
+        materialize(files, root)
     settings: dict[str, Any] = {}
     if "agent.toml" in files:
         try:
