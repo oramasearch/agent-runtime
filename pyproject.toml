@@ -1,0 +1,28 @@
+[project]
+name = "agent-runtime"
+version = "0.1.0"
+description = "The blank Python agent: loads a user-created agent from Zetta or a lake repository and runs it"
+readme = "README.md"
+authors = [
+    { name = "Steve Sperandeo", email = "steve.sperandeo@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "numpy>=2.5.3",
+    "openai>=3.19.2",
+    "pandas>=3.0.6",
+    "pydantic>=2.13.5",
+]
+
+[project.scripts]
+agent-runtime = "agent_runtime:main"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
