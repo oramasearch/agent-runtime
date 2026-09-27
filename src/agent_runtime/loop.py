@@ -36,10 +36,16 @@ class Result:
     calls: list[dict[str, Any]] = field(default_factory=list)
     rounds: int = 0
     finished: bool = False
+    # A structured answer beside the words (agent-creator#1): what an API caller reads without
+    # parsing the reply. None for an agent that only talks.
+    result: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {"reply": self.reply, "calls": self.calls, "rounds": self.rounds,
-                "finished": self.finished}
+        out = {"reply": self.reply, "calls": self.calls, "rounds": self.rounds,
+               "finished": self.finished}
+        if self.result is not None:
+            out["result"] = self.result
+        return out
 
 
 def area_text(agent: Agent) -> str:
@@ -138,5 +144,10 @@ def run_entrypoint(agent: Agent, context: Context) -> Result:
     answer = function(context)
     if isinstance(answer, Result):
         return answer
+    # {"reply": words, "result": {...}}: a person reads the reply, a caller the result.
+    if isinstance(answer, dict) and isinstance(answer.get("reply"), str):
+        result = answer.get("result")
+        return Result(reply=answer["reply"], finished=True,
+                      result=result if isinstance(result, dict) else None)
     return Result(reply=answer if isinstance(answer, str) else json.dumps(answer, default=str),
                   finished=True)

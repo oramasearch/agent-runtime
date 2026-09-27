@@ -69,6 +69,9 @@ long-polls `receive_agent_tasks` through lake with the agent's own bus credentia
 publishes `progress`, then the answer or `failed`. A person's own agent never takes tasks from the
 bus: the operator gives it no bus credential.
 
+An entrypoint answers a string, a `Result`, or `{"reply": <words>, "result": {...}}`: the words for
+a person and a structured answer for an API caller, returned beside `reply` as `result`.
+
 Every run writes a **trace** to `TRACE_DIR`: input, every tool call with its observation or error,
 the answer. Traces never carry a credential.
 
