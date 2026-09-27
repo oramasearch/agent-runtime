@@ -115,10 +115,26 @@ class Context:
         return run_loop(self.agent, self.tools, messages, self.client, self.model)
 
 
+def import_from(directory, module_name: str):
+    """Import a definition's module from its own directory, never a cached one.
+
+    Definitions share names (`agent.main`, `agent.tools`), so a module another definition loaded
+    earlier in the same process must not answer for this one.
+    """
+    package = module_name.split(".", 1)[0]
+    for loaded in [name for name in sys.modules if name == package or
+                   name.startswith(package + ".")]:
+        del sys.modules[loaded]
+    sys.path.insert(0, str(directory))
+    try:
+        return importlib.import_module(module_name)
+    finally:
+        sys.path.remove(str(directory))
+
+
 def run_entrypoint(agent: Agent, context: Context) -> Result:
     module_name, _, function_name = agent.entrypoint.partition(":")
-    sys.path.insert(0, str(agent.directory))
-    function = getattr(importlib.import_module(module_name), function_name or "run")
+    function = getattr(import_from(agent.directory, module_name), function_name or "run")
     answer = function(context)
     if isinstance(answer, Result):
         return answer

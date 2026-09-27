@@ -189,8 +189,8 @@ def definition_tools(agent: Agent) -> list[Tool]:
     """`agent/tools.py`'s TOOLS: plain callables, described by their docstrings."""
     if agent.directory is None or not (agent.directory / "agent" / "tools.py").exists():
         return []
-    sys.path.insert(0, str(agent.directory))
-    module = importlib.import_module("agent.tools")
+    from agent_runtime.loop import import_from
+    module = import_from(agent.directory, "agent.tools")
     tools: list[Tool] = []
     for function in getattr(module, "TOOLS", []):
         signature = inspect.signature(function)
