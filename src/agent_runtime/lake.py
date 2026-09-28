@@ -24,11 +24,14 @@ class Reply:
     ok: bool
     value: Any = None
     error: str = ""
+    code: str = ""
 
     def observation(self) -> str:
         """What the model reads: the value, or the refusal in lake's or Zetta's own words."""
         if self.ok:
             return json.dumps(self.value, default=str)[:20000]
+        if self.code == "unknown_capability":
+            return f"FAILED: not deployed yet ({self.error})"
         return f"FAILED: {self.error}"
 
 
@@ -115,6 +118,6 @@ def envelope(response: httpx.Response) -> Reply:
         return Reply(True, body.get("value"))
     error = body.get("error") if isinstance(body, dict) else None
     if isinstance(error, dict):
-        return Reply(False, error=f"{error.get('code', response.status_code)}: "
-                                  f"{error.get('message', '')}")
+        code = str(error.get("code", response.status_code))
+        return Reply(False, error=f"{code}: {error.get('message', '')}", code=code)
     return Reply(False, error=f"HTTP {response.status_code}")

@@ -110,6 +110,7 @@ class Context:
     tools: list[Tool]
     client: OpenAI
     model: str
+    solution_catalog: dict[str, Any] = field(default_factory=dict)
 
     def call_tool(self, name: str, arguments: dict[str, Any]):
         for tool in self.tools:
