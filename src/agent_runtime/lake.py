@@ -61,6 +61,12 @@ class Lake:
         response.raise_for_status()
         return response.json()
 
+    def openapi(self) -> dict[str, Any]:
+        """lake's OpenAPI, filtered to the capabilities this agent credential may use."""
+        response = self.client.get("/v1/openapi.json")
+        response.raise_for_status()
+        return response.json()
+
     def zetta(self, capability: str, arguments: dict[str, Any], method: str) -> Reply:
         """GET /v1/<capability>?<args> for a read, POST with a JSON body for an action."""
         path = f"{self.zetta_base}/v1/{capability}"
@@ -80,6 +86,24 @@ class Lake:
     def read(self, capability: str, **arguments: Any) -> Reply:
         try:
             response = self.client.get(f"/v1/{capability}", params=arguments)
+        except httpx.HTTPError as error:
+            return Reply(False, error=f"{type(error).__name__}: {error}")
+        return envelope(response)
+
+    def capability(self, capability: str, arguments: dict[str, Any], method: str) -> Reply:
+        """Call one customer-scoped lake capability through its audited registry route."""
+        path = f"/v1/{capability}"
+        scoped = {**arguments, "customer_id": self.customer_id}
+        try:
+            if method == "get":
+                params = {
+                    key: value if isinstance(value, str) else json.dumps(value)
+                    for key, value in scoped.items()
+                    if value is not None
+                }
+                response = self.client.get(path, params=params)
+            else:
+                response = self.client.post(path, json=scoped)
         except httpx.HTTPError as error:
             return Reply(False, error=f"{type(error).__name__}: {error}")
         return envelope(response)

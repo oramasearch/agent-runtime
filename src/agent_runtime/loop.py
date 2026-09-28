@@ -36,13 +36,14 @@ class Result:
     calls: list[dict[str, Any]] = field(default_factory=list)
     rounds: int = 0
     finished: bool = False
+    proposals: list[dict[str, Any]] = field(default_factory=list)
     # A structured answer beside the words (agent-creator#1): what an API caller reads without
     # parsing the reply. None for an agent that only talks.
     result: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         out = {"reply": self.reply, "calls": self.calls, "rounds": self.rounds,
-               "finished": self.finished}
+               "finished": self.finished, "proposals": self.proposals}
         if self.result is not None:
             out["result"] = self.result
         return out
@@ -87,6 +88,12 @@ def run_loop(agent: Agent, tools: list[Tool], messages: list[dict[str, Any]], cl
             tool = by_name.get(call.function.name)
             reply = (tool.call(arguments) if tool is not None else
                      _unknown(call.function.name))
+            if tool is not None and tool.proposal and reply.ok:
+                result.proposals.append({
+                    "capability": tool.name,
+                    "input": arguments,
+                    "impact": tool.proposal_impact,
+                })
             result.calls.append({"tool": call.function.name, "arguments": arguments,
                                  "ok": reply.ok, "observation": reply.value if reply.ok else None,
                                  "error": reply.error or None})
@@ -111,11 +118,20 @@ class Context:
     client: OpenAI
     model: str
     solution_catalog: dict[str, Any] = field(default_factory=dict)
+    app_capabilities: dict[str, Any] = field(default_factory=dict)
+    proposals: list[dict[str, Any]] = field(default_factory=list)
 
     def call_tool(self, name: str, arguments: dict[str, Any]):
         for tool in self.tools:
             if tool.name == name:
-                return tool.call(arguments)
+                reply = tool.call(arguments)
+                if tool.proposal and reply.ok:
+                    self.proposals.append({
+                        "capability": tool.name,
+                        "input": arguments,
+                        "impact": tool.proposal_impact,
+                    })
+                return reply
         return _unknown(name)
 
     def complete(self, messages: list[dict[str, Any]]) -> Result:

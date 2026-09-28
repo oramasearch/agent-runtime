@@ -1,14 +1,16 @@
 """The tools a user-created agent gets, derived rather than written.
 
-Three sources, one list:
+Four sources, one list:
 
 1. **The workspace's Zetta capabilities**, from lake's filtered OpenAPI (never a hand-written
    table: the eval generator's first run failed on a hand-written parameter name). Only the
    capabilities the agent's **skills** grant survive; a skill not granted is a tool the agent
    never sees.
-2. **Granted Pipelines** (lake#238): each approved Pipeline on the record becomes
+2. **Lake App and build capabilities**, from lake's filtered OpenAPI. Reads call lake; granted
+   changes become exact proposals and never call the mutation route from this runtime.
+3. **Granted Pipelines** (lake#238): each approved Pipeline on the record becomes
    `pipeline_<name>`, which gates, runs and returns the run's report.
-3. **The definition's own functions**: `agent/tools.py` may export `TOOLS`, plain Python callables
+4. **The definition's own functions**: `agent/tools.py` may export `TOOLS`, plain Python callables
    whose docstrings describe them.
 
 The **work area** narrows every call: an agent confined to one project cannot name another, and
@@ -71,6 +73,8 @@ class Tool:
     description: str
     parameters: dict[str, Any]
     call: Callable[[dict[str, Any]], Reply]
+    proposal: bool = False
+    proposal_impact: str = ""
 
     def spec(self) -> dict[str, Any]:
         return {"type": "function", "function": {"name": self.name,
@@ -105,6 +109,26 @@ def operation_parameters(method: str, operation: dict[str, Any]) -> dict[str, An
     if required:
         schema["required"] = required
     return schema
+
+
+def customer_scoped(parameters: dict[str, Any]) -> dict[str, Any]:
+    """Remove customer_id because the launch credential already fixes the customer."""
+    scoped = dict(parameters)
+    scoped["properties"] = {
+        name: schema
+        for name, schema in (parameters.get("properties") or {}).items()
+        if name != "customer_id"
+    }
+    required = [
+        name
+        for name in parameters.get("required") or []
+        if name != "customer_id"
+    ]
+    if required:
+        scoped["required"] = required
+    else:
+        scoped.pop("required", None)
+    return scoped
 
 
 def confined(agent: Agent, arguments: dict[str, Any]) -> str:
@@ -142,6 +166,48 @@ def workspace_tools(agent: Agent, lake: Lake, openapi: dict[str, Any]) -> list[T
             tools.append(Tool(name, operation.get("description") or operation.get("summary")
                               or name, parameters, call))
     return tools
+
+
+def lake_tools(lake: Lake, openapi: dict[str, Any]) -> list[Tool]:
+    """Granted lake App/build reads and proposal-only actions, derived from OpenAPI."""
+    from agent_runtime.apps import APP_ACTION_CAPABILITIES, APP_CAPABILITIES
+
+    derived: list[Tool] = []
+    for path, operations in (openapi.get("paths") or {}).items():
+        name = path.removeprefix("/v1/")
+        if name not in APP_CAPABILITIES:
+            continue
+        for method, operation in operations.items():
+            parameters = customer_scoped(operation_parameters(method, operation))
+            description = operation.get("description") or operation.get("summary") or name
+            if name in APP_ACTION_CAPABILITIES:
+
+                def propose(arguments: dict[str, Any], name: str = name) -> Reply:
+                    return Reply(
+                        True,
+                        {
+                            "status": "proposed",
+                            "capability": name,
+                            "input": arguments,
+                            "message": "PROPOSED, NOT DONE. A person must confirm this in lake.",
+                        },
+                    )
+
+                derived.append(Tool(
+                    name,
+                    f"Propose this lake change for a person to confirm. {description}",
+                    parameters,
+                    propose,
+                    proposal=True,
+                    proposal_impact=description,
+                ))
+                continue
+
+            def call(arguments: dict[str, Any], name: str = name, method: str = method) -> Reply:
+                return lake.capability(name, arguments, method)
+
+            derived.append(Tool(name, description, parameters, call))
+    return derived
 
 
 def slug(text: str) -> str:
@@ -226,9 +292,10 @@ def definition_tools(agent: Agent) -> list[Tool]:
     return tools
 
 
-def all_tools(agent: Agent, lake: Lake, openapi: dict[str, Any]) -> list[Tool]:
-    tools = workspace_tools(agent, lake, openapi) + pipeline_tools(agent, lake) \
-        + definition_tools(agent)
+def all_tools(agent: Agent, lake: Lake, openapi: dict[str, Any],
+              lake_openapi: dict[str, Any] | None = None) -> list[Tool]:
+    tools = workspace_tools(agent, lake, openapi) + lake_tools(lake, lake_openapi or {}) \
+        + pipeline_tools(agent, lake) + definition_tools(agent)
     if agent.tool_allow_list is not None:
         allowed = set(agent.tool_allow_list)
         tools = [tool for tool in tools if tool.name in allowed]
