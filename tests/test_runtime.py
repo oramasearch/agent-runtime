@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from agent_runtime import definition, runner, solutions, tools
+from agent_runtime import apps, definition, runner, solutions, tools
 from agent_runtime.lake import Lake, LoadError, Reply
 from agent_runtime.loop import run_loop, system_message
 
@@ -48,6 +48,29 @@ SOLUTION_OPENAPI = {"openapi": "3.1.0", "paths": {
             "application/json": {"schema": {"type": "object", "properties": {}}}
         }}}}
         for name in SOLUTION_ACTIONS
+    },
+}}
+APP_OPENAPI = {"openapi": "3.1.0", "paths": {
+    **{
+        f"/v1/{name}": {"get": {"description": name, "parameters": [
+            {"name": "customer_id", "in": "query", "required": True,
+             "schema": {"type": "string"}},
+        ]}}
+        for name in apps.APP_READ_CAPABILITIES
+    },
+    **{
+        f"/v1/{name}": {"post": {"description": name, "requestBody": {"content": {
+            "application/json": {"schema": {
+                "type": "object",
+                "properties": {
+                    "customer_id": {"type": "string"},
+                    "app_id": {"type": "string"},
+                    "replicas": {"type": "integer"},
+                },
+                "required": ["customer_id", "app_id"],
+            }}
+        }}}}
+        for name in apps.APP_ACTION_CAPABILITIES
     },
 }}
 FILES = [{"path": "agent.toml", "contents": 'entrypoint = "agent.main:run"\n'},
@@ -148,6 +171,27 @@ class FakeSolutions:
         if path == base + "record_action":
             return failed("holdout", "holdout decisions cannot be acted on")
         return succeeded({"accepted": True})
+
+
+class FakeApps:
+    """lake App and build capabilities with every request recorded."""
+
+    def __init__(self, openapi: dict | None = None) -> None:
+        self.requests: list[httpx.Request] = []
+        self.openapi = openapi or APP_OPENAPI
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        path = request.url.path
+        if path == "/v1/openapi.json":
+            return httpx.Response(200, json=self.openapi)
+        if path == f"/workspaces/{CUSTOMER}/zetta/v1/openapi.json":
+            return httpx.Response(200, json={"openapi": "3.1.0", "paths": {}})
+        if path == "/v1/list_apps":
+            return succeeded({"apps": [{"id": "app-1", "phase": "Running"}]})
+        if path == "/v1/receive_build_events":
+            return succeeded({"events": [{"type": "done"}], "next_sequence": 2})
+        return failed("unexpected_call", path)
 
 
 def succeeded(value) -> httpx.Response:
@@ -315,6 +359,132 @@ def test_a_holdout_refusal_from_the_engine_is_the_action_observation(tmp_path):
         "decide",
         "record_action",
     ]
+
+
+def test_app_reads_are_always_tools_and_actions_require_the_filtered_openapi(tmp_path):
+    fake = FakeApps()
+    lake = lake_with(fake)
+    agent = definition.from_record(
+        record(skills=[], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path,
+    )
+    derived = tools.all_tools(agent, lake, {"paths": {}}, APP_OPENAPI)
+    by_name = {tool.name: tool for tool in derived}
+
+    assert set(by_name) == apps.APP_CAPABILITIES
+    assert {name for name, tool in by_name.items() if tool.proposal} == \
+        apps.APP_ACTION_CAPABILITIES
+    assert "customer_id" not in by_name["list_apps"].parameters["properties"]
+    assert by_name["deploy_app"].parameters["required"] == ["app_id"]
+
+    listed = by_name["list_apps"].call({})
+    events = by_name["receive_build_events"].call({"build_id": "build-1"})
+
+    assert listed.value["apps"][0]["id"] == "app-1"
+    assert events.value["next_sequence"] == 2
+    assert fake.requests[-2].url.params["customer_id"] == CUSTOMER
+    assert fake.requests[-1].url.params["customer_id"] == CUSTOMER
+
+    filtered = {
+        **APP_OPENAPI,
+        "paths": {
+            path: operation
+            for path, operation in APP_OPENAPI["paths"].items()
+            if path not in {"/v1/scale_app", "/v1/build_app"}
+        },
+    }
+    filtered_names = {tool.name for tool in tools.lake_tools(lake, filtered)}
+    assert "scale_app" not in filtered_names
+    assert "build_app" not in filtered_names
+
+
+def test_app_actions_become_exact_proposals_and_never_reach_lake(tmp_path):
+    fake = FakeApps()
+    lake = lake_with(fake)
+    agent = definition.from_record(
+        record(skills=[], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path,
+    )
+    derived = tools.lake_tools(lake, APP_OPENAPI)
+    context = apps.app_context(derived)
+    messages = [system_message(agent)]
+    apps.replace_context(messages, context)
+    call = SimpleNamespace(
+        id="app-call-1",
+        function=SimpleNamespace(
+            name="deploy_app",
+            arguments=json.dumps({"app_id": "app-1", "image": "team/app:v2"}),
+        ),
+    )
+    client = Scripted(
+        message(tool_calls=[call]),
+        message(content="I proposed deploying team/app:v2 for your review."),
+    )
+
+    result = run_loop(agent, derived, messages, client, "gpt-5.5")
+
+    assert result.finished
+    assert result.proposals == [{
+        "capability": "deploy_app",
+        "input": {"app_id": "app-1", "image": "team/app:v2"},
+        "impact": "deploy_app",
+    }]
+    assert result.calls[0]["observation"]["status"] == "proposed"
+    assert not any(request.url.path == "/v1/deploy_app" for request in fake.requests)
+    assert "agent-application" in messages[1]["content"]
+    assert '"kind": "app"' in messages[1]["content"]
+
+
+def test_an_entrypoint_records_app_proposals_in_its_result(tmp_path):
+    fake = FakeApps()
+    lake = lake_with(fake)
+    (tmp_path / "agent").mkdir()
+    (tmp_path / "agent" / "__init__.py").write_text("")
+    (tmp_path / "agent" / "main.py").write_text(
+        "def run(context):\n"
+        "    proposed = context.call_tool('scale_app', "
+        "{'app_id': 'app-1', 'replicas': 3})\n"
+        "    return 'proposed' if proposed.ok else 'failed'\n"
+    )
+    (tmp_path / "agent.toml").write_text('entrypoint = "agent.main:run"\n')
+    (tmp_path / "record.json").write_text(json.dumps({"id": "app-operator"}))
+    agent = definition.from_record(definition.from_directory(tmp_path))
+    loaded = runner.Loaded(agent, tools.lake_tools(lake, APP_OPENAPI), "gpt-5.5", lake)
+
+    result = runner.run_once(loaded, {"request": "scale"}, None)
+
+    assert result.reply == "proposed"
+    assert result.proposals == [{
+        "capability": "scale_app",
+        "input": {"app_id": "app-1", "replicas": 3},
+        "impact": "scale_app",
+    }]
+    assert not any(request.url.path == "/v1/scale_app" for request in fake.requests)
+
+
+def test_each_turn_refreshes_lake_app_grants(tmp_path):
+    fake = FakeApps()
+    lake = lake_with(fake)
+    loaded = runner.load(
+        lake,
+        "app-reader",
+        record(skills=[], definition={"source": "zetta", "files": []}),
+    )
+
+    assert "scale_app" in {tool.name for tool in loaded.tools}
+
+    fake.openapi = {
+        **APP_OPENAPI,
+        "paths": {
+            path: operation
+            for path, operation in APP_OPENAPI["paths"].items()
+            if path != "/v1/scale_app"
+        },
+    }
+    refreshed, temporary_lake = runner.per_turn(loaded, {})
+
+    assert temporary_lake is None
+    assert "scale_app" not in {tool.name for tool in refreshed.tools}
 
 
 def test_a_granted_pipeline_gates_runs_and_returns_its_report(tmp_path):

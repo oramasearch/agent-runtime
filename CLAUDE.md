@@ -15,6 +15,8 @@ Rules specific to this repo:
   code through `repository_tree` / `repository_file`. The runtime never holds a workspace's admin
   token.
 - **Tools are derived**, from lake's filtered OpenAPI and the agent's skills, never hand-written.
+  App and build reads are available without a Studio skill; App and build changes are exact
+  proposals for a person to confirm, never writes from this runtime.
 - **A failing tool is an observation**, never an exception that ends the run.
 - **Every run is a trace**, failures included, without any credential.
 - uv, never pip. Private repo, private image (`oramasearch/agent-runtime`).

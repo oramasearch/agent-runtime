@@ -30,7 +30,7 @@ from typing import Any
 
 from openai import OpenAI
 
-from agent_runtime import definition, lake_bus
+from agent_runtime import apps, definition, lake_bus
 from agent_runtime.lake import Lake, LoadError
 from agent_runtime.loop import Context, Result, run_entrypoint, run_loop, system_message
 from agent_runtime.solutions import read_solution_catalog, replace_context
@@ -59,13 +59,18 @@ def load(lake: Lake, agent_id: str, record: dict[str, Any] | None = None) -> Loa
         openapi = lake.zetta_openapi()
     except Exception as error:  # the workspace's tools are unavailable, the run still reports it
         raise LoadError(f"cannot read the workspace's tools: {error}") from error
-    tools = all_tools(agent, lake, openapi)
+    try:
+        lake_openapi = lake.openapi()
+    except Exception:
+        lake_openapi = {"paths": {}}
+    tools = all_tools(agent, lake, openapi, lake_openapi)
     model = agent.model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
     return Loaded(agent, tools, model, lake)
 
 
 def run_once(loaded: Loaded, task: Any, client: OpenAI) -> Result:
     catalog = read_solution_catalog(loaded.tools)
+    app_context = apps.app_context(loaded.tools)
     if loaded.agent.entrypoint:
         context = Context(
             loaded.agent,
@@ -74,13 +79,16 @@ def run_once(loaded: Loaded, task: Any, client: OpenAI) -> Result:
             client,
             loaded.model,
             catalog.as_dict(),
+            app_context.as_dict(),
         )
         result = run_entrypoint(loaded.agent, context)
         result.calls[0:0] = catalog.calls
+        result.proposals[0:0] = context.proposals
         return result
     text = task if isinstance(task, str) else json.dumps(task)
     messages = [system_message(loaded.agent)]
     replace_context(messages, catalog)
+    apps.replace_context(messages, app_context)
     messages.append({"role": "user", "content": text})
     result = run_loop(loaded.agent, loaded.tools, messages, client, loaded.model)
     result.calls[0:0] = catalog.calls
@@ -152,18 +160,22 @@ def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: di
            client: OpenAI) -> dict[str, Any]:
     """One turn: the definition's own entrypoint when it has one, else the tool loop."""
     catalog = read_solution_catalog(loaded.tools)
+    app_context = apps.app_context(loaded.tools)
     if loaded.agent.entrypoint:
         context = Context(loaded.agent, {"message": message, "history": list(history),
                                          "page": turn.get("page") or {},
                                          "customer_id": turn.get("customer_id") or ""},
-                          loaded.tools, client, loaded.model, catalog.as_dict())
+                          loaded.tools, client, loaded.model, catalog.as_dict(),
+                          app_context.as_dict())
         entrypoint_result = run_entrypoint(loaded.agent, context)
         entrypoint_result.calls[0:0] = catalog.calls
+        entrypoint_result.proposals[0:0] = context.proposals
         result = entrypoint_result.as_dict()
         history.append({"role": "user", "content": message})
         history.append({"role": "assistant", "content": result["reply"]})
         return result
     replace_context(history, catalog)
+    apps.replace_context(history, app_context)
     history.append({"role": "user", "content": message})
     loop_result = run_loop(loaded.agent, loaded.tools, history, client, loaded.model)
     loop_result.calls[0:0] = catalog.calls
@@ -180,7 +192,11 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
             openapi = loaded.lake.zetta_openapi()
         except Exception:
             openapi = {"paths": {}}
-        tools = all_tools(loaded.agent, loaded.lake, openapi)
+        try:
+            lake_openapi = loaded.lake.openapi()
+        except Exception:
+            lake_openapi = {"paths": {}}
+        tools = all_tools(loaded.agent, loaded.lake, openapi, lake_openapi)
         return Loaded(loaded.agent, tools, loaded.model, loaded.lake), None
     token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
     if not token or not customer:
@@ -190,7 +206,11 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
         openapi = lake.zetta_openapi()
     except Exception:  # a space without a ready workspace still gets an answer
         openapi = {"paths": {}}
-    tools = all_tools(loaded.agent, lake, openapi)
+    try:
+        lake_openapi = lake.openapi()
+    except Exception:
+        lake_openapi = {"paths": {}}
+    tools = all_tools(loaded.agent, lake, openapi, lake_openapi)
     return Loaded(loaded.agent, tools, loaded.model, lake), lake
 
 

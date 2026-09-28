@@ -42,10 +42,15 @@ module is not in the definition, a path outside the definition, an agent that is
    (`/workspaces/<customer>/zetta/v1/openapi.json`, lake#235) and kept only where the agent's
    **skills** grant them (`SKILL_CAPABILITIES` in `tools.py`): *search*, *generate-data*, *train*,
    *summarize*, *call-api*.
-2. **Granted Pipelines** (lake#238): each becomes `pipeline_<graph>`, which checks the correctness
+2. **Lake Apps and builds**, derived from lake's filtered OpenAPI for the launch credential. Every
+   agent may read Apps, logs, builds, and their retained event streams when lake exposes them.
+   Granted create, deploy, rollback, lifecycle, scale, binding, and build operations are
+   proposal-only tools: the exact input is returned for the person to confirm and is never sent as
+   a write by this runtime. See [`docs/apps/README.md`](docs/apps/README.md).
+3. **Granted Pipelines** (lake#238): each becomes `pipeline_<graph>`, which checks the correctness
    gate (a blocked gate runs nothing and names the failing checks), runs it, waits up to ten minutes
    and returns the run's report.
-3. **The definition's own functions**: `agent/tools.py`'s `TOOLS`.
+4. **The definition's own functions**: `agent/tools.py`'s `TOOLS`.
 
 The **work area** narrows every call: a project-confined agent cannot name another project, a
 dataset-confined one cannot read other datasets. A refused or failing call is returned to the model
@@ -114,9 +119,9 @@ buildctl --addr "kube-pod://<buildkit pod>?context=orama-production-cluster-01&n
 ## Tests
 
 `uv run pytest`: loading from both sources and every refusal, skill-derived tools, solution grants
-and per-turn registry reads, legacy-engine behavior, holdout refusals, the work area, Pipeline tools
-(and a blocked gate), definition functions, the loop's observations, and a job that leaves a trace
-without the key.
+and per-turn registry reads, App/build reads and exact proposals, legacy-engine behavior, holdout
+refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
+observations, and a job that leaves a trace without the key.
 
 ## Known failures and limits
 
