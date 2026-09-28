@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from agent_runtime import definition, runner, tools
+from agent_runtime import definition, runner, solutions, tools
 from agent_runtime.lake import Lake, LoadError, Reply
 from agent_runtime.loop import run_loop, system_message
 
@@ -22,6 +22,33 @@ OPENAPI = {"openapi": "3.1.0", "paths": {
     "/v1/gate": {"post": {"description": "gate", "requestBody": {"content": {"application/json": {
         "schema": {"type": "object", "properties": {"project": {"type": "string"}}}}}}}},
     "/v1/create_project": {"post": {"description": "create", "requestBody": {}}},
+}}
+SOLUTION_READS = {
+    "list_solutions",
+    "get_solution",
+    "get_policy",
+    "list_ledger",
+    "get_experiment",
+    "get_monitor",
+    "get_roi_readout",
+}
+SOLUTION_ACTIONS = {
+    "decide",
+    "record_action",
+    "record_outcome",
+    "approve_decision",
+}
+SOLUTION_OPENAPI = {"openapi": "3.1.0", "paths": {
+    **{
+        f"/v1/{name}": {"get": {"description": name, "parameters": []}}
+        for name in SOLUTION_READS
+    },
+    **{
+        f"/v1/{name}": {"post": {"description": name, "requestBody": {"content": {
+            "application/json": {"schema": {"type": "object", "properties": {}}}
+        }}}}
+        for name in SOLUTION_ACTIONS
+    },
 }}
 FILES = [{"path": "agent.toml", "contents": 'entrypoint = "agent.main:run"\n'},
          {"path": "agent/__init__.py", "contents": ""},
@@ -82,6 +109,58 @@ def lake_with(fake: FakeLake) -> Lake:
     return Lake("http://lake", "agent-token", CUSTOMER, transport=httpx.MockTransport(fake))
 
 
+class FakeSolutions:
+    """A changing solution registry plus an engine-enforced holdout."""
+
+    def __init__(self, old_engine: bool = False) -> None:
+        self.requests: list[httpx.Request] = []
+        self.generation = 0
+        self.old_engine = old_engine
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        path = request.url.path
+        base = f"/workspaces/{CUSTOMER}/zetta/v1/"
+        if path == base + "openapi.json":
+            return httpx.Response(200, json=SOLUTION_OPENAPI)
+        if path == base + "list_solutions":
+            if self.old_engine:
+                return failed("unknown_capability", "list_solutions")
+            self.generation += 1
+            return succeeded({"solutions": [
+                {"id": "S-1", "runnable": True},
+                {"id": "S-2", "runnable": False, "missing": ["monitor"]},
+                {"id": "B-1", "runnable": False, "status": "sketch"},
+            ]})
+        if path == base + "get_solution":
+            identifier = request.url.params["solution"]
+            return succeeded({
+                "solution": {
+                    "id": identifier,
+                    "generation": self.generation,
+                    "runnable": identifier == "S-1",
+                    "status": "sketch" if identifier == "B-1" else "ready",
+                    "missing": ["monitor"] if identifier == "S-2" else [],
+                },
+            })
+        if path == base + "decide":
+            return succeeded({"decision_id": "d-1", "holdout": True, "actionable": False})
+        if path == base + "record_action":
+            return failed("holdout", "holdout decisions cannot be acted on")
+        return succeeded({"accepted": True})
+
+
+def succeeded(value) -> httpx.Response:
+    return httpx.Response(200, json={"ok": True, "value": value})
+
+
+def failed(code: str, message: str) -> httpx.Response:
+    return httpx.Response(
+        409,
+        json={"ok": False, "error": {"code": code, "message": message}},
+    )
+
+
 def test_the_same_definition_loads_from_zetta_and_from_a_lake_repository(tmp_path):
     fake = FakeLake()
     inline = definition.from_record(record(), workdir=tmp_path / "zetta")
@@ -122,6 +201,120 @@ def test_skills_decide_the_workspace_tools_and_the_work_area_narrows_them(tmp_pa
     refused = get_dataset.call({"dataset": "payroll"})
     assert not refused.ok and "only on accounts" in refused.error
     assert not fake.requests, "a refused call never reaches lake"
+
+
+def test_solution_tools_require_both_the_skill_and_the_filtered_openapi(tmp_path):
+    fake = FakeSolutions()
+    search_agent = definition.from_record(
+        record(skills=["search"], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path / "search",
+    )
+    search_names = {
+        tool.name
+        for tool in tools.workspace_tools(search_agent, lake_with(fake), SOLUTION_OPENAPI)
+    }
+    assert search_names == SOLUTION_READS
+
+    action_agent = definition.from_record(
+        record(skills=["call-api"], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path / "action",
+    )
+    filtered_openapi = {
+        **SOLUTION_OPENAPI,
+        "paths": {
+            path: operation
+            for path, operation in SOLUTION_OPENAPI["paths"].items()
+            if path != "/v1/approve_decision"
+        },
+    }
+    action_names = {
+        tool.name
+        for tool in tools.workspace_tools(action_agent, lake_with(fake), filtered_openapi)
+    }
+    assert action_names == SOLUTION_READS | (SOLUTION_ACTIONS - {"approve_decision"})
+
+
+def test_each_turn_reads_the_current_solution_registry_and_full_entries(tmp_path):
+    fake = FakeSolutions()
+    lake = lake_with(fake)
+    agent = definition.from_record(
+        record(skills=["search"], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path,
+    )
+    loaded = runner.Loaded(
+        agent,
+        tools.workspace_tools(agent, lake, SOLUTION_OPENAPI),
+        "gpt-5.5",
+        lake,
+    )
+    history = [system_message(agent)]
+
+    first = runner.answer(loaded, history, "what can help?", {}, Scripted(message(content="S-1")))
+    second = runner.answer(loaded, history, "what changed?", {}, Scripted(message(content="S-2")))
+
+    assert [call["tool"] for call in first["calls"]] == [
+        "list_solutions",
+        "get_solution",
+        "get_solution",
+        "get_solution",
+    ]
+    assert len(second["calls"]) == 4
+    assert fake.generation == 2
+    assert sum(request.url.path.endswith("/list_solutions") for request in fake.requests) == 2
+    assert sum(request.url.path.endswith("/get_solution") for request in fake.requests) == 6
+    current = [
+        message
+        for message in history
+        if str(message.get("content", "")).startswith(solutions.CONTEXT_PREFIX)
+    ]
+    assert len(current) == 1
+    assert '"generation": 2' in current[0]["content"]
+    assert '"status": "sketch"' in current[0]["content"]
+    assert '"missing": ["monitor"]' in current[0]["content"]
+
+
+def test_an_old_engine_has_no_solution_catalogue_and_says_not_deployed(tmp_path):
+    fake = FakeSolutions(old_engine=True)
+    lake = lake_with(fake)
+    agent = definition.from_record(
+        record(skills=["search"], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path,
+    )
+    derived = tools.workspace_tools(agent, lake, SOLUTION_OPENAPI)
+    catalog = solutions.read_solution_catalog(derived)
+
+    assert not catalog.available
+    assert catalog.not_deployed
+    assert catalog.solutions == []
+    assert catalog.reason == "list_solutions is not deployed yet"
+    assert catalog.calls[0]["error"].startswith("unknown_capability")
+    list_tool = next(tool for tool in derived if tool.name == "list_solutions")
+    assert "not deployed yet" in list_tool.call({}).observation()
+
+
+def test_a_holdout_refusal_from_the_engine_is_the_action_observation(tmp_path):
+    fake = FakeSolutions()
+    lake = lake_with(fake)
+    agent = definition.from_record(
+        record(skills=["call-api"], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path,
+    )
+    derived = {
+        tool.name: tool
+        for tool in tools.workspace_tools(agent, lake, SOLUTION_OPENAPI)
+    }
+
+    decision = derived["decide"].call({"entity": "held-account"})
+    refused = derived["record_action"].call({"decision_id": decision.value["decision_id"]})
+
+    assert decision.value == {"decision_id": "d-1", "holdout": True, "actionable": False}
+    assert not refused.ok
+    assert refused.code == "holdout"
+    assert "holdout decisions cannot be acted on" in refused.observation()
+    assert [request.url.path.rsplit("/", 1)[-1] for request in fake.requests] == [
+        "decide",
+        "record_action",
+    ]
 
 
 def test_a_granted_pipeline_gates_runs_and_returns_its_report(tmp_path):

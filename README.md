@@ -51,6 +51,21 @@ The **work area** narrows every call: a project-confined agent cannot name anoth
 dataset-confined one cannot read other datasets. A refused or failing call is returned to the model
 as an observation.
 
+Solution capabilities use the same two grants: a capability must be present in lake's filtered
+OpenAPI and in the agent's skill grant. *Search*, *train*, *summarize*, and *call-api* may read
+`list_solutions`, `get_solution`, `get_policy`, `get_experiment`, `list_ledger`, `get_monitor`, and
+`get_roi_readout`. Only *call-api* may receive `decide`, `record_action`, `record_outcome`, and
+`approve_decision`, and only when lake exposes that individual action. The runtime refreshes the
+OpenAPI and reads `list_solutions` plus every returned `get_solution` record for each turn. Those
+records, not a built-in catalogue, become the turn's context. An engine that answers
+`unknown_capability` has no solution catalogue for that turn; the observation says the capability
+is not deployed yet.
+
+Solution actions are sent unchanged through lake to Zetta. Zetta's policy engine, holdout manager,
+approval rules, and append-only audit ledger decide whether they succeed; their refusal is returned
+to the agent and no alternate action path is attempted. See
+[`docs/solutions/README.md`](docs/solutions/README.md).
+
 ## Modes
 
 | Mode | What it does |
@@ -98,9 +113,10 @@ buildctl --addr "kube-pod://<buildkit pod>?context=orama-production-cluster-01&n
 
 ## Tests
 
-`uv run pytest`: loading from both sources and every refusal, skill-derived tools, the work area,
-Pipeline tools (and a blocked gate), definition functions, the loop's observations, and a job that
-leaves a trace without the key.
+`uv run pytest`: loading from both sources and every refusal, skill-derived tools, solution grants
+and per-turn registry reads, legacy-engine behavior, holdout refusals, the work area, Pipeline tools
+(and a blocked gate), definition functions, the loop's observations, and a job that leaves a trace
+without the key.
 
 ## Known failures and limits
 

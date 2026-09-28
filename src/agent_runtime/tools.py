@@ -30,17 +30,36 @@ from typing import Any, Callable
 from agent_runtime.definition import Agent
 from agent_runtime.lake import Lake, Reply
 
+# Solution reads are useful to agents that inspect, train, summarize, or call a deployed API.
+# Mutations belong only to call-api, and lake's filtered OpenAPI must also grant each one.
+SOLUTION_READ_CAPABILITIES = frozenset({
+    "list_solutions",
+    "get_solution",
+    "get_policy",
+    "list_ledger",
+    "get_experiment",
+    "get_monitor",
+    "get_roi_readout",
+})
+SOLUTION_ACTION_CAPABILITIES = frozenset({
+    "decide",
+    "record_action",
+    "record_outcome",
+    "approve_decision",
+})
+
 # Studio's skills (orama-design studioAgents.js) and the workspace capabilities each grants.
 SKILL_CAPABILITIES: dict[str, set[str]] = {
     "search": {"list_datasets", "get_dataset", "list_connections", "list_source_tables",
-               "list_indexes", "get_index", "search"},
+               "list_indexes", "get_index", "search"} | SOLUTION_READ_CAPABILITIES,
     "generate-data": {"list_datasets", "list_dataset_generators", "generate_dataset"},
     "train": {"list_datasets", "get_dataset", "list_projects", "get_project", "get_graph",
               "list_runs", "get_run", "get_run_report", "list_models", "get_model", "gate",
-              "run"},
+              "run"} | SOLUTION_READ_CAPABILITIES,
     "summarize": {"list_projects", "get_project", "list_runs", "get_run", "get_run_report",
-                  "list_models", "get_model", "model_health"},
-    "call-api": {"list_models", "get_model", "score", "explain", "list_indexes", "search"},
+                  "list_models", "get_model", "model_health"} | SOLUTION_READ_CAPABILITIES,
+    "call-api": {"list_models", "get_model", "score", "explain", "list_indexes", "search"}
+                | SOLUTION_READ_CAPABILITIES | SOLUTION_ACTION_CAPABILITIES,
 }
 
 PIPELINE_DEADLINE_SECONDS = 600

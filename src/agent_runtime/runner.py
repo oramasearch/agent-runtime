@@ -33,6 +33,7 @@ from openai import OpenAI
 from agent_runtime import definition, lake_bus
 from agent_runtime.lake import Lake, LoadError
 from agent_runtime.loop import Context, Result, run_entrypoint, run_loop, system_message
+from agent_runtime.solutions import read_solution_catalog, replace_context
 from agent_runtime.tools import Tool, all_tools
 
 DEFAULT_MODEL = "gpt-5.5"
@@ -43,6 +44,7 @@ class Loaded:
     agent: definition.Agent
     tools: list[Tool]
     model: str
+    lake: Lake | None = None
 
 
 def load(lake: Lake, agent_id: str, record: dict[str, Any] | None = None) -> Loaded:
@@ -58,16 +60,31 @@ def load(lake: Lake, agent_id: str, record: dict[str, Any] | None = None) -> Loa
     except Exception as error:  # the workspace's tools are unavailable, the run still reports it
         raise LoadError(f"cannot read the workspace's tools: {error}") from error
     tools = all_tools(agent, lake, openapi)
-    return Loaded(agent, tools, agent.model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL))
+    model = agent.model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
+    return Loaded(agent, tools, model, lake)
 
 
 def run_once(loaded: Loaded, task: Any, client: OpenAI) -> Result:
+    catalog = read_solution_catalog(loaded.tools)
     if loaded.agent.entrypoint:
-        return run_entrypoint(loaded.agent,
-                              Context(loaded.agent, task, loaded.tools, client, loaded.model))
+        context = Context(
+            loaded.agent,
+            task,
+            loaded.tools,
+            client,
+            loaded.model,
+            catalog.as_dict(),
+        )
+        result = run_entrypoint(loaded.agent, context)
+        result.calls[0:0] = catalog.calls
+        return result
     text = task if isinstance(task, str) else json.dumps(task)
-    messages = [system_message(loaded.agent), {"role": "user", "content": text}]
-    return run_loop(loaded.agent, loaded.tools, messages, client, loaded.model)
+    messages = [system_message(loaded.agent)]
+    replace_context(messages, catalog)
+    messages.append({"role": "user", "content": text})
+    result = run_loop(loaded.agent, loaded.tools, messages, client, loaded.model)
+    result.calls[0:0] = catalog.calls
+    return result
 
 
 def record_trace(trace_dir: Path, agent: definition.Agent | None, mode: str, task: Any,
@@ -134,24 +151,37 @@ class Conversations:
 def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: dict[str, Any],
            client: OpenAI) -> dict[str, Any]:
     """One turn: the definition's own entrypoint when it has one, else the tool loop."""
+    catalog = read_solution_catalog(loaded.tools)
     if loaded.agent.entrypoint:
         context = Context(loaded.agent, {"message": message, "history": list(history),
                                          "page": turn.get("page") or {},
                                          "customer_id": turn.get("customer_id") or ""},
-                          loaded.tools, client, loaded.model)
-        result = run_entrypoint(loaded.agent, context).as_dict()
+                          loaded.tools, client, loaded.model, catalog.as_dict())
+        entrypoint_result = run_entrypoint(loaded.agent, context)
+        entrypoint_result.calls[0:0] = catalog.calls
+        result = entrypoint_result.as_dict()
         history.append({"role": "user", "content": message})
         history.append({"role": "assistant", "content": result["reply"]})
         return result
+    replace_context(history, catalog)
     history.append({"role": "user", "content": message})
-    return run_loop(loaded.agent, loaded.tools, history, client, loaded.model).as_dict()
+    loop_result = run_loop(loaded.agent, loaded.tools, history, client, loaded.model)
+    loop_result.calls[0:0] = catalog.calls
+    return loop_result.as_dict()
 
 
 def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]:
     """A lake-wide agent (AGENT_PER_TURN_CREDENTIALS=1) works for whoever sent the turn: lake
     hands over that person's key and space, and the tools are derived from their workspace."""
     if os.environ.get("AGENT_PER_TURN_CREDENTIALS") != "1":
-        return loaded, None
+        if loaded.lake is None:
+            return loaded, None
+        try:
+            openapi = loaded.lake.zetta_openapi()
+        except Exception:
+            openapi = {"paths": {}}
+        tools = all_tools(loaded.agent, loaded.lake, openapi)
+        return Loaded(loaded.agent, tools, loaded.model, loaded.lake), None
     token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
     if not token or not customer:
         raise LoadError("this agent works per turn: the turn needs lake_token and customer_id")
@@ -160,7 +190,8 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
         openapi = lake.zetta_openapi()
     except Exception:  # a space without a ready workspace still gets an answer
         openapi = {"paths": {}}
-    return Loaded(loaded.agent, all_tools(loaded.agent, lake, openapi), loaded.model), lake
+    tools = all_tools(loaded.agent, lake, openapi)
+    return Loaded(loaded.agent, tools, loaded.model, lake), lake
 
 
 def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) -> int:
