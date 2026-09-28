@@ -231,3 +231,19 @@ def test_a_lake_wide_agent_needs_the_persons_key_on_every_turn(monkeypatch, tmp_
                                    workdir=tmp_path)
     with pytest.raises(LoadError, match="lake_token"):
         runner.per_turn(runner.Loaded(agent, [], "gpt-5.5"), {"message": "hi"})
+
+
+def test_an_entrypoint_answers_words_and_a_structured_result(tmp_path):
+    """agent-creator#1: an API caller reads `result`; a person reads `reply`."""
+    (tmp_path / "agent").mkdir()
+    (tmp_path / "agent" / "__init__.py").write_text("")
+    (tmp_path / "agent" / "main.py").write_text(
+        "def run(context):\n    return {'reply': 'Which dataset?', "
+        "'result': {'kind': 'question', 'question': 'Which dataset?'}}\n")
+    (tmp_path / "agent.toml").write_text('entrypoint = "agent.main:run"\n')
+    (tmp_path / "record.json").write_text(json.dumps({"id": "agent-creator"}))
+    agent = definition.from_record(definition.from_directory(tmp_path))
+    answer = runner.answer(runner.Loaded(agent, [], "gpt-5.5"), [], "make me an agent",
+                           {"customer_id": "c-9"}, None)
+    assert answer["reply"] == "Which dataset?"
+    assert answer["result"] == {"kind": "question", "question": "Which dataset?"}
