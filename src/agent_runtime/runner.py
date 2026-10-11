@@ -10,8 +10,12 @@ it.
 
 Configuration is the environment the operator sets for a launch (orama-operator#185): `LAKE_URL`,
 `LAKE_TOKEN` (the agent's lake key), `CUSTOMER_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,
-`OPENAI_API_KEY` (the general Orama key), `AGENT_MODEL`, `TRACE_DIR`, `PORT` and
-`AGENT_SERVICE_TOKEN`.
+`AGENT_MODEL`, `TRACE_DIR`, `PORT` and `AGENT_SERVICE_TOKEN`.
+
+The model is reached through lake's model gateway (lake#248, `model.py`): `<LAKE_URL>/openai/v1`
+with the run's own lake key (`LAKE_TOKEN`, or a per-turn agent's turn `lake_token`) as the API key,
+so lake counts every call's tokens in the run's workspace. The runtime holds no provider key, and
+neither does the agent code it runs: an entrypoint's `context.client` is that same client.
 """
 
 from __future__ import annotations
@@ -31,6 +35,7 @@ from typing import Any
 from openai import OpenAI
 
 from agent_runtime import apps, definition, lake_bus
+from agent_runtime.model import gateway_client
 from agent_runtime.lake import Lake, LoadError
 from agent_runtime.loop import Context, Result, run_entrypoint, run_loop, system_message
 from agent_runtime.mcp import CONTEXT_PREFIX as MCP_CONTEXT_PREFIX, context_message
@@ -139,7 +144,8 @@ def job(record: dict[str, Any] | None = None) -> int:
     loaded: Loaded | None = None
     try:
         loaded = load(lake, os.environ.get("AGENT_ID", ""), record)
-        result = run_once(loaded, task, OpenAI()).as_dict()
+        model = gateway_client(os.environ["LAKE_URL"], os.environ["LAKE_TOKEN"])
+        result = run_once(loaded, task, model).as_dict()
         code = 0 if result["finished"] and result["reply"] else 2
     except LoadError as error:
         result, code = {"error": str(error)}, 1
@@ -226,6 +232,15 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
     return Loaded(loaded.agent, tools, loaded.model, lake), lake
 
 
+def turn_model(model_client: OpenAI | None, turn: dict[str, Any]) -> OpenAI:
+    """The model for one service turn: the agent's own (its launch's key), or, for a per-turn
+    agent, one through lake with the key of whoever sent the turn (lake#248)."""
+    if model_client is not None:
+        return model_client
+    return gateway_client(turn.get("lake_url") or os.environ.get("LAKE_URL", ""),
+                          turn.get("lake_token") or "")
+
+
 def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) -> int:
     trace_dir = Path(os.environ.get("TRACE_DIR", "/tmp/agent-runtime-traces"))
     token = os.environ.get("AGENT_SERVICE_TOKEN", "")
@@ -241,7 +256,12 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
             print(json.dumps({"agent-runtime": "cannot load", "error": str(error)}), flush=True)
             return 1
     conversations = Conversations()
-    model_client = client or OpenAI()
+    per_turn_credentials = os.environ.get("AGENT_PER_TURN_CREDENTIALS") == "1"
+    # A person's own agent calls its model with its launch's key; a per-turn agent with each
+    # turn's (lake#248).
+    model_client = client
+    if model_client is None and not per_turn_credentials:
+        model_client = gateway_client(os.environ["LAKE_URL"], os.environ["LAKE_TOKEN"])
 
     def handle_turn(turn: dict[str, Any]) -> dict[str, Any]:
         """One turn, from /v1/turn or from lake's agent bus: the answer and its trace."""
@@ -253,7 +273,7 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
         turn_lake = None
         try:
             turn_loaded, turn_lake = per_turn(loaded, turn)
-            result = answer(turn_loaded, history, message, turn, model_client)
+            result = answer(turn_loaded, history, message, turn, turn_model(model_client, turn))
         except Exception as error:
             result = {"error": f"{type(error).__name__}: {error}"}
         finally:
