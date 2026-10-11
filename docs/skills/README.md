@@ -36,7 +36,12 @@ is a follow-up.
 sessions, recovery, key and certificate minting, secrets and encryption keys, people and access,
 SSO and SCIM, a person's applications' sign-in, audit and the transparency log, billing changes,
 workspaces and infrastructure, webhooks, the generic workspace surface, other agents and the agent
-bus, and events only an App, a build or the operator publishes. `lake_grant` removes these even if
+bus (the model gateway `model_completion` is reached through the OpenAI base URL, never as a tool),
+MCP connections (an agent reaches a connection's tools only through that connection's own
+`mcp:<prefix>` skill, `../../src/agent_runtime/mcp.py`), and events only an App, a build or the
+operator publishes. Deleting a dataset, model, run or index, and training, retraining, registering,
+loading or moving a standalone model are changes in the *datasets* and *pipelines* skills: proposals
+a person confirms. `lake_grant` removes these even if
 a skill named one.
 
 ## The contract

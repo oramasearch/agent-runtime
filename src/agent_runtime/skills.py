@@ -166,6 +166,7 @@ SKILLS: dict[str, Skill] = {skill.name: skill for skill in [
             "list_connections", "list_source_tables", "list_dataset_generators",
             "load_drive_dataset", "upload_dataset", "create_dataset_from_query",
             "promote_dataset", "create_connection", "delete_connection",
+            "delete_dataset",
         },
     ),
     _skill(
@@ -188,6 +189,8 @@ SKILLS: dict[str, Skill] = {skill.name: skill for skill in [
             "compose_solution", "create_solution", "update_solution", "duplicate_solution",
             "delete_solution", "confirm_solution", "start_solution", "run_solution",
             "update_policy",
+            "train_model", "retrain_model", "register_model", "load_drive_model",
+            "move_model_to_project", "delete_model", "delete_run", "delete_index",
         },
     ),
     _skill(
@@ -234,6 +237,7 @@ NEVER_FOR_AGENTS: dict[str, frozenset[str]] = {
         "derive_encryption_key", "rotate_customer_kek", "encrypt", "decrypt", "rewrap", "sign",
         "verify", "hmac", "set_environment_env", "unset_environment_env", "service_connection",
         "store_connection",
+        "delete_secret_mount",
     }),
     "people, organizations and access": frozenset({
         "create_customer", "get_customer", "list_customers", "create_user", "get_user",
@@ -248,6 +252,7 @@ NEVER_FOR_AGENTS: dict[str, frozenset[str]] = {
         "create_drive_share_link", "revoke_drive_share_link", "preview_drive_share_link",
         "download_drive_share_link", "resolve_drive_share_link", "set_repository_visibility",
         "transfer_repository", "set_branch_protection",
+        "delete_organization", "revoke_grant", "revoke_invitation",
     }),
     "single sign-on and directory sync": frozenset({
         "register_sso_provider", "list_sso_providers", "test_sso_provider",
@@ -308,6 +313,17 @@ NEVER_FOR_AGENTS: dict[str, frozenset[str]] = {
         "create_agent_from_proposal", "send_ask_message", "settle_ask_turn",
         "get_ask_conversation", "confirm_ask_proposal", "get_agent_task", "receive_agent_events",
         "receive_agent_tasks", "claim_agent_task", "publish_agent_event", "record_model_usage",
+        "delete_ask_conversation", "list_agent_revisions",
+        # The model gateway is reached through the OpenAI base URL, never as a tool.
+        "model_completion",
+    }),
+    "MCP connections (an agent reaches a connection's tools only through its own mcp:<prefix> skill)": frozenset({
+        "list_mcp_connections", "get_mcp_connection", "create_mcp_connection",
+        "update_mcp_connection", "delete_mcp_connection", "refresh_mcp_connection",
+        "test_mcp_connection", "list_mcp_connection_tools", "list_mcp_connection_calls",
+        "call_mcp_tool", "read_mcp_tool", "set_mcp_tool_auto_approve",
+        "begin_mcp_connection_sign_in", "complete_mcp_connection_sign_in",
+        "create_mcp_connection_agent",
     }),
     "events only an App, a build or the operator publishes": frozenset({
         "publish_app_event", "publish_build_event",
