@@ -560,10 +560,16 @@ def test_a_job_runs_the_entrypoint_and_leaves_a_trace_without_the_key(tmp_path, 
     monkeypatch.setenv("AGENT_INPUT", json.dumps({"week": 39}))
     monkeypatch.setenv("AGENT_ID", "a-1")
     monkeypatch.setattr(runner, "lake_from_environment", lambda: lake_with(fake))
-    monkeypatch.setattr(runner, "OpenAI", lambda: None)
+    monkeypatch.setenv("LAKE_URL", "http://lake:8080")
+    monkeypatch.setenv("LAKE_TOKEN", "lal.launch.secret")
+    gateways = []
+    monkeypatch.setattr(runner, "gateway_client",
+                        lambda url, token: gateways.append((url, token)) or None)
     summaries = []
     monkeypatch.setattr(runner, "termination_summary", summaries.append)
     assert runner.job() == 0
+    assert gateways == [("http://lake:8080", "lal.launch.secret")], \
+        "a job calls its model through lake with its launch's key (lake#248)"
     assert summaries[0]["reply"] == "ran {'week': 39}"
     trace = json.loads(next((tmp_path / "traces").glob("*.json")).read_text())
     assert "agent-token" not in json.dumps(trace)
@@ -610,3 +616,38 @@ def test_an_entrypoint_answers_words_and_a_structured_result(tmp_path):
                            {"customer_id": "c-9"}, None)
     assert answer["reply"] == "Which dataset?"
     assert answer["result"] == {"kind": "question", "question": "Which dataset?"}
+
+
+def test_every_model_call_goes_through_lakes_gateway_with_the_runs_key(monkeypatch):
+    """lake#248: the runtime and the agent code it runs reach the model only through lake."""
+    import httpx
+
+    from agent_runtime import model
+
+    seen: list[httpx.Request] = []
+
+    def gateway(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={
+            "id": "chatcmpl-1", "object": "chat.completion", "created": 0, "model": "gpt-5.5",
+            "choices": [{"index": 0, "finish_reason": "stop",
+                         "message": {"role": "assistant", "content": "done"}}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}})
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(runner, "gateway_client", lambda url, token: model.gateway_client(
+        url, token, http_client=httpx.Client(transport=httpx.MockTransport(gateway))))
+    # A per-turn agent (AgentCreator) uses the key of whoever sent the turn.
+    client = runner.turn_model(None, {"lake_url": "http://lake:8080", "lake_token": "lat.t.s"})
+    client.chat.completions.create(model="gpt-5.5", messages=[{"role": "user", "content": "x"}])
+    assert str(seen[0].url) == "http://lake:8080/openai/v1/chat/completions"
+    assert seen[0].headers["authorization"] == "Bearer lat.t.s"
+    # A person's own agent keeps the client made with its launch's key.
+    own = object()
+    assert runner.turn_model(own, {"lake_token": "lat.t.s"}) is own
+    try:
+        model.gateway_client("http://lake", "")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a model call without a lake key is refused")
