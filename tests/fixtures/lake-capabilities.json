@@ -1,0 +1,5023 @@
+{
+ "capabilities": {
+  "accept_invitation": {
+   "action": "admin",
+   "inputs": [
+    "attestation_digest",
+    "invitation_id",
+    "principal_id",
+    "principal_taap_id",
+    "principal_type"
+   ],
+   "method": "post"
+  },
+  "agent_run": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "customer_id",
+    "dataset",
+    "dataset_path",
+    "graph_name",
+    "intent",
+    "max_new_tokens",
+    "max_rounds",
+    "message",
+    "model_name",
+    "project",
+    "top_k",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "agent_training_status": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "agent_turn": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "context",
+    "conversation_id",
+    "customer_id",
+    "kind",
+    "message",
+    "page",
+    "proposal_sha256",
+    "proposal_task_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "analyze_dataset": {
+   "action": "read",
+   "inputs": [
+    "as_of",
+    "customer_id",
+    "database",
+    "dataset",
+    "dataset_path",
+    "intent",
+    "label",
+    "sample_rows",
+    "time_column",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "app_logs": {
+   "action": "read",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "direction",
+    "limit",
+    "since",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "append_drive_upload": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "customer_id",
+    "drive_id",
+    "id",
+    "offset",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "append_transparency_entries": {
+   "action": "admin",
+   "inputs": [
+    "attestations"
+   ],
+   "method": "post"
+  },
+  "application_jwks": {
+   "action": "read",
+   "inputs": [
+    "application_id"
+   ],
+   "method": "get"
+  },
+  "approve_admin_recovery": {
+   "action": "admin",
+   "inputs": [
+    "recovery_id"
+   ],
+   "method": "post"
+  },
+  "approve_agent_proposal": {
+   "action": "write",
+   "inputs": [
+    "conversation_id",
+    "customer_id",
+    "message_id",
+    "proposal_sha256",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "approve_decision": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "decision_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "approve_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "graph",
+    "intent",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "attach_model_provenance": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "dataset_repository_id",
+    "dataset_revision",
+    "files",
+    "id",
+    "message",
+    "model_attestation",
+    "oid",
+    "operations",
+    "revision",
+    "run_attestation",
+    "size"
+   ],
+   "method": "post"
+  },
+  "audit": {
+   "action": "read",
+   "inputs": [
+    "after_id",
+    "customer_id",
+    "from",
+    "include_reads",
+    "limit",
+    "log",
+    "object",
+    "order",
+    "outcome",
+    "principal",
+    "request_id",
+    "to",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "begin_admin_recovery": {
+   "action": "admin",
+   "inputs": [
+    "organization_id",
+    "user_id"
+   ],
+   "method": "post"
+  },
+  "begin_application_authorization": {
+   "action": "write",
+   "inputs": [
+    "application_id",
+    "code_challenge",
+    "code_challenge_method",
+    "nonce",
+    "redirect_uri",
+    "state"
+   ],
+   "method": "post"
+  },
+  "begin_drive_upload": {
+   "action": "write",
+   "inputs": [
+    "content_type",
+    "customer_id",
+    "drive_id",
+    "on_conflict",
+    "parent_id",
+    "path",
+    "size",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "begin_email_recovery": {
+   "action": "write",
+   "inputs": [
+    "email",
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "begin_passkey_registration": {
+   "action": "write",
+   "inputs": [
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "begin_passkey_sign_in": {
+   "action": "write",
+   "inputs": [
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "begin_root_recovery": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "share_count",
+    "threshold"
+   ],
+   "method": "post"
+  },
+  "bill_preview": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "period"
+   ],
+   "method": "get"
+  },
+  "billing_account": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "bind_service_to_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "service_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "browse_stream": {
+   "action": "read",
+   "inputs": [
+    "agent",
+    "customer_id",
+    "direction",
+    "from_sequence",
+    "limit",
+    "task",
+    "topic",
+    "wait_ms",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "get"
+  },
+  "build_app": {
+   "action": "write",
+   "inputs": [
+    "app",
+    "customer_id",
+    "source",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "build_image": {
+   "action": "write",
+   "inputs": [
+    "build_args",
+    "context",
+    "customer_id",
+    "dockerfile",
+    "repository",
+    "revision",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "build_logs": {
+   "action": "read",
+   "inputs": [
+    "build_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "cancel_build": {
+   "action": "write",
+   "inputs": [
+    "build_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "capture_intent": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "project",
+    "text",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "change_diff": {
+   "action": "read",
+   "inputs": [
+    "change_id",
+    "id"
+   ],
+   "method": "get"
+  },
+  "chat_with_agent": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "customer_id",
+    "history",
+    "intent",
+    "max_new_tokens",
+    "max_rounds",
+    "message",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "check_agent_certificate": {
+   "action": "read",
+   "inputs": [
+    "certificate_id"
+   ],
+   "method": "get"
+  },
+  "check_cached_read": {
+   "action": "read",
+   "inputs": [
+    "credential",
+    "scope"
+   ],
+   "method": "get"
+  },
+  "check_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "graph",
+    "intent",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "claim_agent_task": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "task_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "claim_recovery_deliveries": {
+   "action": "admin",
+   "inputs": [
+    "limit"
+   ],
+   "method": "post"
+  },
+  "commit_repository_files": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "dataset_repository_id",
+    "dataset_revision",
+    "files",
+    "id",
+    "message",
+    "model_attestation",
+    "oid",
+    "operations",
+    "revision",
+    "run_attestation",
+    "size"
+   ],
+   "method": "post"
+  },
+  "compare_runs": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "names",
+    "runs",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "compile_intent": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "hints",
+    "input_id",
+    "intent",
+    "methodology",
+    "name",
+    "project",
+    "solution",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "compile_n8n": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "input_id",
+    "intent",
+    "name",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "compile_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset",
+    "entity_column",
+    "intent",
+    "label_column",
+    "methodology",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "compile_python": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "name",
+    "project",
+    "source",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "complete_recovery": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "recovery_id",
+    "token"
+   ],
+   "method": "post"
+  },
+  "complete_root_recovery": {
+   "action": "admin",
+   "inputs": [
+    "ceremony_id",
+    "customer_id",
+    "shares",
+    "threshold"
+   ],
+   "method": "post"
+  },
+  "compose_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "foundation",
+    "intent",
+    "level",
+    "name",
+    "project",
+    "solution",
+    "sources",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "configure_recovery_contact": {
+   "action": "admin",
+   "inputs": [
+    "contact_taap_id",
+    "repository_id",
+    "wrapped_key"
+   ],
+   "method": "post"
+  },
+  "confirm_ask_proposal": {
+   "action": "write",
+   "inputs": [
+    "conversation_id",
+    "customer_id",
+    "index",
+    "message_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "confirm_solution": {
+   "action": "write",
+   "inputs": [
+    "edits",
+    "task_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "connect_service": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "name",
+    "service_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "convert_personal_space": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "display_name"
+   ],
+   "method": "post"
+  },
+  "copy_workspace_records": {
+   "action": "admin",
+   "inputs": [
+    "after",
+    "collection",
+    "limit",
+    "mode"
+   ],
+   "method": "post"
+  },
+  "create_agent": {
+   "action": "write",
+   "inputs": [
+    "chat_capable",
+    "customer_id",
+    "definition",
+    "description",
+    "endpoint",
+    "goal",
+    "goals",
+    "intent",
+    "is_default",
+    "kind",
+    "manifesto",
+    "model",
+    "model_id",
+    "model_name",
+    "model_version",
+    "name",
+    "pipelines",
+    "purpose",
+    "runtime",
+    "skills",
+    "status",
+    "system_prompt",
+    "tools",
+    "trigger",
+    "work_area",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_agent_from_proposal": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "defects",
+    "proposal",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_app": {
+   "action": "write",
+   "inputs": [
+    "auth",
+    "bindings",
+    "confirm_public",
+    "customer_id",
+    "env",
+    "framework",
+    "host",
+    "image",
+    "mode",
+    "name",
+    "port",
+    "replicas",
+    "source",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_application_organization": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "metadata",
+    "name",
+    "taap_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_application_webhook": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "events",
+    "url",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_connection": {
+   "action": "write",
+   "inputs": [
+    "connector",
+    "customer_id",
+    "intent",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_customer": {
+   "action": "admin",
+   "inputs": [
+    "customer_type",
+    "name",
+    "organization_id",
+    "user_id"
+   ],
+   "method": "post"
+  },
+  "create_dataset_from_query": {
+   "action": "write",
+   "inputs": [
+    "connection",
+    "connector",
+    "customer_id",
+    "database",
+    "if_exists",
+    "intent",
+    "max_rows",
+    "partition_count",
+    "partitioned",
+    "query",
+    "replication_factor",
+    "table_name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_domain": {
+   "action": "deploy",
+   "inputs": [
+    "environment",
+    "host",
+    "repository_id",
+    "tls"
+   ],
+   "method": "post"
+  },
+  "create_drive": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "name",
+    "repository_id",
+    "repository_name",
+    "storage",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_drive_folder": {
+   "action": "write",
+   "inputs": [
+    "name",
+    "path",
+    "ref",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "create_drive_folder_entry": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "parent_id",
+    "path",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_drive_share_link": {
+   "action": "share",
+   "inputs": [
+    "expires_at",
+    "path",
+    "ref",
+    "repository_id",
+    "role",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_drive_shortcut": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "name",
+    "parent_id",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_encryption_key": {
+   "action": "write",
+   "inputs": [
+    "mount_id",
+    "name"
+   ],
+   "method": "post"
+  },
+  "create_federation_issuer": {
+   "action": "admin",
+   "inputs": [
+    "claim",
+    "issuer",
+    "organization_id"
+   ],
+   "method": "post"
+  },
+  "create_grant": {
+   "action": "admin",
+   "inputs": [
+    "attestation_digest",
+    "object_id",
+    "principal_taap_id",
+    "role"
+   ],
+   "method": "post"
+  },
+  "create_image_repository": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_index": {
+   "action": "write",
+   "inputs": [
+    "backend",
+    "customer_id",
+    "database",
+    "fields",
+    "intent",
+    "kind",
+    "table",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_invitation": {
+   "action": "admin",
+   "inputs": [
+    "expires_at",
+    "invitee",
+    "invitee_type",
+    "organization_id",
+    "role",
+    "team_id"
+   ],
+   "method": "post"
+  },
+  "create_issue": {
+   "action": "write",
+   "inputs": [
+    "assignees",
+    "body",
+    "labels",
+    "references",
+    "repository_id",
+    "title"
+   ],
+   "method": "post"
+  },
+  "create_issue_comment": {
+   "action": "write",
+   "inputs": [
+    "body",
+    "issue_id",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "create_membership": {
+   "action": "admin",
+   "inputs": [
+    "attestation_digest",
+    "organization_id",
+    "principal_id",
+    "principal_taap_id",
+    "principal_type",
+    "role",
+    "team_id"
+   ],
+   "method": "post"
+  },
+  "create_object": {
+   "action": "admin",
+   "inputs": [
+    "external_id",
+    "inherit",
+    "object_type",
+    "parent_id"
+   ],
+   "method": "post"
+  },
+  "create_organization": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "display_name",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "create_organization_space": {
+   "action": "write",
+   "inputs": [
+    "display_name",
+    "name"
+   ],
+   "method": "post"
+  },
+  "create_pipeline": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "customer_id",
+    "from",
+    "name",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_pki_authority": {
+   "action": "admin",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "post"
+  },
+  "create_project": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "decision",
+    "description",
+    "intent",
+    "name",
+    "owner",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_projects_from_opportunities": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "opportunities",
+    "opportunity_ids",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_release": {
+   "action": "write",
+   "inputs": [
+    "artifact_ids",
+    "change_id",
+    "repository_id",
+    "tag"
+   ],
+   "method": "post"
+  },
+  "create_repository": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "description",
+    "name",
+    "visibility",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_review": {
+   "action": "write",
+   "inputs": [
+    "change_id",
+    "repository_id",
+    "reviewers"
+   ],
+   "method": "post"
+  },
+  "create_review_comment": {
+   "action": "write",
+   "inputs": [
+    "anchor",
+    "body",
+    "repository_id",
+    "review_id"
+   ],
+   "method": "post"
+  },
+  "create_secret_mount": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "description",
+    "name",
+    "organization_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_service": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "instances",
+    "kind",
+    "name",
+    "storage_gi",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_service_and_bind_to_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "instances",
+    "kind",
+    "name",
+    "storage_gi",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "decision",
+    "measurement",
+    "methodologies",
+    "name",
+    "notes",
+    "pipeline",
+    "problem",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_store": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "name",
+    "provider",
+    "region",
+    "size_gi",
+    "type",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_stream": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "settings",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "post"
+  },
+  "create_team": {
+   "action": "admin",
+   "inputs": [
+    "display_name",
+    "name",
+    "organization_id"
+   ],
+   "method": "post"
+  },
+  "create_token": {
+   "action": "write",
+   "inputs": [
+    "expires_in_seconds",
+    "name",
+    "never_expires",
+    "reason",
+    "scopes",
+    "static"
+   ],
+   "method": "post"
+  },
+  "create_transcript": {
+   "action": "write",
+   "inputs": [
+    "audio_base64",
+    "audio_name",
+    "customer_id",
+    "language",
+    "recorded_at",
+    "source",
+    "text",
+    "title",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_user": {
+   "action": "admin",
+   "inputs": [
+    "display_name",
+    "email",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "create_webhook": {
+   "action": "write",
+   "inputs": [
+    "events",
+    "repository_id",
+    "secret",
+    "url"
+   ],
+   "method": "post"
+  },
+  "create_workspace": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "environment",
+    "name"
+   ],
+   "method": "post"
+  },
+  "decide": {
+   "action": "write",
+   "inputs": [
+    "contacts_column",
+    "cost_column",
+    "customer_id",
+    "database",
+    "entity",
+    "entity_column",
+    "holdout_column",
+    "intent",
+    "output_database",
+    "output_table",
+    "policy_id",
+    "recent_actions_column",
+    "score_column",
+    "table",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "decrypt": {
+   "action": "write",
+   "inputs": [
+    "ciphertext",
+    "mount_id",
+    "name"
+   ],
+   "method": "post"
+  },
+  "delete_agent": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "confirm",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_application_organization": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "organization_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_application_user": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "user_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_connection": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_domain": {
+   "action": "deploy",
+   "inputs": [
+    "environment",
+    "host",
+    "repository_id",
+    "tls"
+   ],
+   "method": "post"
+  },
+  "delete_drive": {
+   "action": "write",
+   "inputs": [
+    "confirm_name",
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_drive_entry": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_drive_path": {
+   "action": "write",
+   "inputs": [
+    "direction",
+    "path",
+    "ref",
+    "repository_id",
+    "sort"
+   ],
+   "method": "post"
+  },
+  "delete_project": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_repository": {
+   "action": "write",
+   "inputs": [
+    "id"
+   ],
+   "method": "post"
+  },
+  "delete_secret_versions": {
+   "action": "write",
+   "inputs": [
+    "mount_id",
+    "name",
+    "versions"
+   ],
+   "method": "post"
+  },
+  "delete_service": {
+   "action": "admin",
+   "inputs": [
+    "confirm",
+    "customer_id",
+    "service_id"
+   ],
+   "method": "post"
+  },
+  "delete_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_store": {
+   "action": "admin",
+   "inputs": [
+    "confirm",
+    "customer_id",
+    "store_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_stream": {
+   "action": "admin",
+   "inputs": [
+    "confirm_name",
+    "customer_id",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "post"
+  },
+  "delete_stream_messages": {
+   "action": "admin",
+   "inputs": [
+    "before_sequence",
+    "confirm_count",
+    "customer_id",
+    "dry_run",
+    "sequences",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "post"
+  },
+  "delete_transcript": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_workspace": {
+   "action": "admin",
+   "inputs": [
+    "confirm",
+    "customer_id",
+    "dry_run",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "deliver_webhook": {
+   "action": "write",
+   "inputs": [
+    "event",
+    "payload",
+    "repository_id",
+    "webhook_id"
+   ],
+   "method": "post"
+  },
+  "deploy_app": {
+   "action": "write",
+   "inputs": [
+    "app",
+    "app_id",
+    "customer_id",
+    "image",
+    "source",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "deploy_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "graph",
+    "intent",
+    "project",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "derive_encryption_key": {
+   "action": "write",
+   "inputs": [
+    "context",
+    "mount_id",
+    "name",
+    "parent_name"
+   ],
+   "method": "post"
+  },
+  "destroy_secret_versions": {
+   "action": "write",
+   "inputs": [
+    "mount_id",
+    "name",
+    "versions"
+   ],
+   "method": "post"
+  },
+  "diff_drive_versions": {
+   "action": "read",
+   "inputs": [
+    "left",
+    "path",
+    "ref",
+    "repository_id",
+    "right"
+   ],
+   "method": "get"
+  },
+  "disable_mfa": {
+   "action": "write",
+   "inputs": [
+    "code"
+   ],
+   "method": "post"
+  },
+  "dismiss_opportunity": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "opportunity_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "download_drive_file": {
+   "action": "read",
+   "inputs": [
+    "path",
+    "ref",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "download_drive_share_link": {
+   "action": "read",
+   "inputs": [
+    "path",
+    "ref",
+    "token"
+   ],
+   "method": "get"
+  },
+  "drive_browse": {
+   "action": "read",
+   "inputs": [
+    "direction",
+    "path",
+    "ref",
+    "repository_id",
+    "sort"
+   ],
+   "method": "get"
+  },
+  "drive_conflict": {
+   "action": "read",
+   "inputs": [
+    "direction",
+    "path",
+    "ref",
+    "repository_id",
+    "sort"
+   ],
+   "method": "get"
+  },
+  "drive_effective_access": {
+   "action": "share",
+   "inputs": [
+    "path",
+    "ref",
+    "repository_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "drive_history": {
+   "action": "read",
+   "inputs": [
+    "direction",
+    "path",
+    "ref",
+    "repository_id",
+    "sort"
+   ],
+   "method": "get"
+  },
+  "drive_preview": {
+   "action": "read",
+   "inputs": [
+    "direction",
+    "path",
+    "ref",
+    "repository_id",
+    "sort"
+   ],
+   "method": "get"
+  },
+  "drive_share_people": {
+   "action": "share",
+   "inputs": [
+    "direction",
+    "path",
+    "ref",
+    "repository_id",
+    "sort"
+   ],
+   "method": "get"
+  },
+  "drive_shared_with_me": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "duplicate_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "edit_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "edits",
+    "from",
+    "graph",
+    "kind",
+    "name",
+    "op",
+    "project",
+    "step",
+    "to",
+    "value",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "effective_access": {
+   "action": "share",
+   "inputs": [
+    "object_id"
+   ],
+   "method": "get"
+  },
+  "encrypt": {
+   "action": "write",
+   "inputs": [
+    "mount_id",
+    "name",
+    "plaintext"
+   ],
+   "method": "post"
+  },
+  "enroll_mfa": {
+   "action": "write",
+   "inputs": [],
+   "method": "post"
+  },
+  "entity_effective_access": {
+   "action": "share",
+   "inputs": [
+    "id",
+    "object_type"
+   ],
+   "method": "get"
+  },
+  "environment_logs": {
+   "action": "read",
+   "inputs": [
+    "direction",
+    "environment",
+    "limit",
+    "repository_id",
+    "since"
+   ],
+   "method": "get"
+  },
+  "exchange_application_authorization_code": {
+   "action": "write",
+   "inputs": [
+    "application_id",
+    "code",
+    "code_verifier",
+    "redirect_uri"
+   ],
+   "method": "post"
+  },
+  "exchange_cloud_attestation": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "document",
+    "provider",
+    "workload_taap_id"
+   ],
+   "method": "post"
+  },
+  "exchange_jwt_attestation": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "organization_id",
+    "token",
+    "workload_taap_id"
+   ],
+   "method": "post"
+  },
+  "exchange_kubernetes_attestation": {
+   "action": "read",
+   "inputs": [
+    "audiences",
+    "customer_id",
+    "organization_id",
+    "token",
+    "workload_taap_id"
+   ],
+   "method": "post"
+  },
+  "explain": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "dataset",
+    "dataset_path",
+    "entity",
+    "intent",
+    "model",
+    "model_id",
+    "row",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "export_application_user": {
+   "action": "read",
+   "inputs": [
+    "application_id",
+    "user_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "export_audit": {
+   "action": "read",
+   "inputs": [
+    "after_id",
+    "customer_id",
+    "from",
+    "include_reads",
+    "limit",
+    "log",
+    "object",
+    "order",
+    "outcome",
+    "principal",
+    "request_id",
+    "to",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "export_repository": {
+   "action": "read",
+   "inputs": [
+    "include_git",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "export_transparency_replication_batch": {
+   "action": "admin",
+   "inputs": [
+    "after_tree_size"
+   ],
+   "method": "post"
+  },
+  "expose_index": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "index",
+    "index_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "expose_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "model",
+    "model_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "finish_drive_upload": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "id",
+    "sha256",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "generate_dataset": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "held_out_fraction",
+    "intent",
+    "kind",
+    "path",
+    "variants_per_subject",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "get_agent": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_agent_task": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "task_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_app": {
+   "action": "read",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_application": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_artifact": {
+   "action": "read",
+   "inputs": [
+    "id",
+    "result_id"
+   ],
+   "method": "get"
+  },
+  "get_ask_conversation": {
+   "action": "read",
+   "inputs": [
+    "conversation_id",
+    "customer_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_build": {
+   "action": "read",
+   "inputs": [
+    "build_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_change": {
+   "action": "read",
+   "inputs": [
+    "change_id",
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_customer": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_dataset": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "revision",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_doc": {
+   "action": "read",
+   "inputs": [
+    "page",
+    "slug"
+   ],
+   "method": "get"
+  },
+  "get_drive": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_drive_entry": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_encryption_key": {
+   "action": "read",
+   "inputs": [
+    "mount_id",
+    "name"
+   ],
+   "method": "get"
+  },
+  "get_environment": {
+   "action": "read",
+   "inputs": [
+    "environment",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "get_experiment": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "experiment_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_experiment_analysis": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "experiment_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_holdout_experiment": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "experiment",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_index": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "index",
+    "index_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_invoice": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "invoice_id"
+   ],
+   "method": "get"
+  },
+  "get_job": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "job",
+    "job_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_membership": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_model": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "model_id",
+    "revision",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_monitor": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "solution",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_object": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_organization": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_pipeline": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "graph",
+    "project",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_policy": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "policy_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_project": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "name",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_repository": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_roi_readout": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "solution",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_run": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "run",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_run_metrics": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "from_step",
+    "max_points",
+    "names",
+    "run",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_run_report": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "limit",
+    "run",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_secret_mount": {
+   "action": "read",
+   "inputs": [
+    "mount_id"
+   ],
+   "method": "get"
+  },
+  "get_solution": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_stream": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "get"
+  },
+  "get_team": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_trace": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "trace_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_transcript": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_user": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "get_workspace": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "hmac": {
+   "action": "write",
+   "inputs": [
+    "message",
+    "mount_id",
+    "name",
+    "version"
+   ],
+   "method": "post"
+  },
+  "identity": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "import_github_repository": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "git_directory",
+    "name",
+    "recording",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "import_n8n": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "customer_id",
+    "filename",
+    "intent",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "import_repository": {
+   "action": "write",
+   "inputs": [
+    "archive",
+    "customer_id",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "initialize_tuf": {
+   "action": "admin",
+   "inputs": [
+    "root"
+   ],
+   "method": "post"
+  },
+  "issue_agent_certificate": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "lifetime_seconds",
+    "public_key",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "issue_application_jwt": {
+   "action": "write",
+   "inputs": [
+    "application_id",
+    "user_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "issue_assignees": {
+   "action": "write",
+   "inputs": [
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "issue_client_certificate": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "lifetime_seconds",
+    "subject"
+   ],
+   "method": "post"
+  },
+  "issue_device_certificate": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "lifetime_seconds",
+    "subject"
+   ],
+   "method": "post"
+  },
+  "issue_invoice": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "period"
+   ],
+   "method": "post"
+  },
+  "issue_jwt_svid": {
+   "action": "admin",
+   "inputs": [
+    "audience",
+    "customer_id",
+    "lifetime_seconds",
+    "spiffe_id"
+   ],
+   "method": "post"
+  },
+  "issue_offline_grant": {
+   "action": "admin",
+   "inputs": [
+    "device_id",
+    "duration_seconds",
+    "scopes"
+   ],
+   "method": "post"
+  },
+  "issue_ssh_host_certificate": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "key_id",
+    "lifetime_seconds",
+    "principals",
+    "public_key"
+   ],
+   "method": "post"
+  },
+  "issue_ssh_user_certificate": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "key_id",
+    "lifetime_seconds",
+    "principals",
+    "public_key"
+   ],
+   "method": "post"
+  },
+  "issue_x509_svid": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "lifetime_seconds",
+    "spiffe_id"
+   ],
+   "method": "post"
+  },
+  "join_organization": {
+   "action": "write",
+   "inputs": [
+    "invitation_id"
+   ],
+   "method": "post"
+  },
+  "latest_agent_task": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "subject",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "launch_agent": {
+   "action": "write",
+   "inputs": [
+    "agent_id",
+    "customer_id",
+    "input",
+    "mode",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "lease_dynamic_secret": {
+   "action": "write",
+   "inputs": [
+    "lifetime_seconds",
+    "mount_id",
+    "role"
+   ],
+   "method": "post"
+  },
+  "list_agent_launches": {
+   "action": "read",
+   "inputs": [
+    "agent_id",
+    "customer_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_agent_library": {
+   "action": "read",
+   "inputs": [
+    "include_internal"
+   ],
+   "method": "get"
+  },
+  "list_agent_schedules": {
+   "action": "read",
+   "inputs": [
+    "agent_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_agents": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_application_organizations": {
+   "action": "read",
+   "inputs": [
+    "application_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_application_users": {
+   "action": "read",
+   "inputs": [
+    "application_id",
+    "limit",
+    "query",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_application_webhook_events": {
+   "action": "read",
+   "inputs": [
+    "application_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_application_webhooks": {
+   "action": "read",
+   "inputs": [
+    "application_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_applications": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "limit"
+   ],
+   "method": "get"
+  },
+  "list_apps": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_artifacts": {
+   "action": "read",
+   "inputs": [
+    "action",
+    "content",
+    "cursor",
+    "id",
+    "limit",
+    "output"
+   ],
+   "method": "get"
+  },
+  "list_branch_protections": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_builds": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_changes": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "list_conflicts": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "list_connections": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_customers": {
+   "action": "read",
+   "inputs": [
+    "limit"
+   ],
+   "method": "get"
+  },
+  "list_dataset_generators": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_datasets": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_deployments": {
+   "action": "read",
+   "inputs": [
+    "environment",
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_devices": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "list_docs": {
+   "action": "read",
+   "inputs": [
+    "q"
+   ],
+   "method": "get"
+  },
+  "list_drive_entries": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "folder_id",
+    "path",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_drives": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_encryption_keys": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "mount_id"
+   ],
+   "method": "get"
+  },
+  "list_environments": {
+   "action": "read",
+   "inputs": [
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_experiment_trials": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "experiment_id",
+    "state",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_experiments": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "project",
+    "state",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_exports": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_federation_issuers": {
+   "action": "admin",
+   "inputs": [
+    "limit",
+    "organization_id"
+   ],
+   "method": "get"
+  },
+  "list_grants": {
+   "action": "admin",
+   "inputs": [
+    "limit",
+    "object_id"
+   ],
+   "method": "get"
+  },
+  "list_image_repositories": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_indexes": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_invitations": {
+   "action": "admin",
+   "inputs": [
+    "limit",
+    "organization_id",
+    "team_id"
+   ],
+   "method": "get"
+  },
+  "list_invoices": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "list_issue_comments": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_issues": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_jobs": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_ledger": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_memberships": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "organization_id",
+    "team_id"
+   ],
+   "method": "get"
+  },
+  "list_methodologies": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_models": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_objects": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "object_type",
+    "parent_id"
+   ],
+   "method": "get"
+  },
+  "list_offline_grants": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "list_opportunities": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "task_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_organizations": {
+   "action": "read",
+   "inputs": [
+    "limit"
+   ],
+   "method": "get"
+  },
+  "list_packages": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "list_projects": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_recovery_notifications": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "list_releases": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_repositories": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_review_comments": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_reviews": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_runs": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "limit",
+    "project",
+    "solution",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_secret_mounts": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "limit",
+    "organization_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_secrets": {
+   "action": "read",
+   "inputs": [
+    "cursor",
+    "limit",
+    "mount_id",
+    "prefix"
+   ],
+   "method": "get"
+  },
+  "list_service_kinds": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "list_services": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "list_sessions": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "list_solutions": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "source",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_source_tables": {
+   "action": "read",
+   "inputs": [
+    "connection",
+    "connector",
+    "customer_id",
+    "include_columns",
+    "intent",
+    "match",
+    "max_tables",
+    "schema",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_sso_providers": {
+   "action": "admin",
+   "inputs": [
+    "limit",
+    "organization_id"
+   ],
+   "method": "get"
+  },
+  "list_sso_provisioning_logs": {
+   "action": "admin",
+   "inputs": [
+    "limit",
+    "provider_id"
+   ],
+   "method": "get"
+  },
+  "list_store_providers": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "list_stores": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_streams": {
+   "action": "read",
+   "inputs": [
+    "cursor",
+    "customer_id",
+    "limit",
+    "prefix",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_teams": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "organization_id"
+   ],
+   "method": "get"
+  },
+  "list_traces": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_transcripts": {
+   "action": "read",
+   "inputs": [
+    "cursor",
+    "customer_id",
+    "limit",
+    "q",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_users": {
+   "action": "read",
+   "inputs": [
+    "limit"
+   ],
+   "method": "get"
+  },
+  "list_webhook_deliveries": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_webhooks": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "list_workspaces": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "load_drive_dataset": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "format",
+    "id",
+    "if_exists",
+    "table_name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "map_review_anchors": {
+   "action": "write",
+   "inputs": [
+    "hunks",
+    "path",
+    "repository_id",
+    "source_change",
+    "target_change"
+   ],
+   "method": "post"
+  },
+  "mcp_setup": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "metering_usage": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "from",
+    "limit",
+    "to"
+   ],
+   "method": "get"
+  },
+  "mint_agent_session_key": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dispatcher_taap_id",
+    "durable_agent_taap_id",
+    "lifetime_seconds",
+    "never_expires",
+    "scopes"
+   ],
+   "method": "post"
+  },
+  "mint_sealed_secret": {
+   "action": "read",
+   "inputs": [
+    "attestation",
+    "recipient",
+    "source"
+   ],
+   "method": "post"
+  },
+  "model_health": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "model",
+    "model_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "model_traffic": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "from_ms",
+    "model_id",
+    "step_ms",
+    "to_ms",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "move_drive_entry": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "id",
+    "name",
+    "parent_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "move_drive_path": {
+   "action": "write",
+   "inputs": [
+    "destination",
+    "path",
+    "ref",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "move_workspace_store": {
+   "action": "admin",
+   "inputs": [
+    "mode",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "my_audit": {
+   "action": "read",
+   "inputs": [
+    "after_id",
+    "customer_id",
+    "from",
+    "include_reads",
+    "limit",
+    "log",
+    "object",
+    "order",
+    "outcome",
+    "principal",
+    "request_id",
+    "to",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "my_permissions": {
+   "action": "read",
+   "inputs": [
+    "actions",
+    "object_id",
+    "object_type",
+    "path",
+    "ref"
+   ],
+   "method": "get"
+  },
+  "plan_features": {
+   "action": "read",
+   "inputs": [
+    "as_of",
+    "customer_id",
+    "database",
+    "dataset",
+    "dataset_path",
+    "group_column",
+    "intent",
+    "label",
+    "methodology",
+    "sample_rows",
+    "time_column",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "predict": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "entity_column",
+    "model",
+    "model_id",
+    "rows",
+    "top_k",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "prepare_repository_upload": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "dataset_repository_id",
+    "dataset_revision",
+    "files",
+    "id",
+    "message",
+    "model_attestation",
+    "oid",
+    "operations",
+    "revision",
+    "run_attestation",
+    "size"
+   ],
+   "method": "post"
+  },
+  "preview_drive_share_link": {
+   "action": "read",
+   "inputs": [
+    "path",
+    "ref",
+    "token"
+   ],
+   "method": "get"
+  },
+  "price_list": {
+   "action": "read",
+   "inputs": [
+    "include_history",
+    "period"
+   ],
+   "method": "get"
+  },
+  "promote_dataset": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "database",
+    "dataset",
+    "intent",
+    "replication_factor",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "promote_trial": {
+   "action": "admin",
+   "inputs": [
+    "confirm",
+    "customer_id",
+    "experiment_id",
+    "run",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "publish_agent_event": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "message",
+    "result",
+    "task_id",
+    "type",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "publish_app_event": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "event",
+    "message",
+    "status",
+    "type",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "publish_build_event": {
+   "action": "write",
+   "inputs": [
+    "build_id",
+    "customer_id",
+    "digest",
+    "lines",
+    "message",
+    "phase",
+    "size",
+    "step",
+    "steps",
+    "type",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "publish_stream_message": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "payload",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "post"
+  },
+  "publish_transparency_checkpoint": {
+   "action": "admin",
+   "inputs": [],
+   "method": "post"
+  },
+  "publish_tuf_metadata": {
+   "action": "admin",
+   "inputs": [
+    "snapshot",
+    "targets",
+    "timestamp"
+   ],
+   "method": "post"
+  },
+  "put_secret": {
+   "action": "write",
+   "inputs": [
+    "check_and_set",
+    "custom_metadata",
+    "mount_id",
+    "name",
+    "value"
+   ],
+   "method": "post"
+  },
+  "read_drive_file": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "id",
+    "length",
+    "offset",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "read_secret": {
+   "action": "read",
+   "inputs": [
+    "mount_id",
+    "name",
+    "version"
+   ],
+   "method": "get"
+  },
+  "receive_agent_events": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "from_sequence",
+    "task_id",
+    "wait_ms",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "receive_agent_tasks": {
+   "action": "read",
+   "inputs": [
+    "agent",
+    "from_sequence",
+    "wait_ms",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "receive_app_events": {
+   "action": "read",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "from_sequence",
+    "wait_ms",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "receive_build_events": {
+   "action": "read",
+   "inputs": [
+    "build_id",
+    "customer_id",
+    "from_sequence",
+    "wait_ms",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "recent_drive_entries": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "record_invoice_payment": {
+   "action": "admin",
+   "inputs": [
+    "invoice_id",
+    "note",
+    "reference"
+   ],
+   "method": "post"
+  },
+  "record_model_usage": {
+   "action": "write",
+   "inputs": [
+    "input_tokens",
+    "model_name",
+    "output_tokens",
+    "task_id"
+   ],
+   "method": "post"
+  },
+  "record_outcome": {
+   "action": "write",
+   "inputs": [
+    "action_id",
+    "currency",
+    "customer_id",
+    "intent",
+    "occurred_at",
+    "outcome",
+    "source",
+    "value",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "recover_repository_key": {
+   "action": "read",
+   "inputs": [
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "recover_with_code": {
+   "action": "write",
+   "inputs": [
+    "code",
+    "device_name",
+    "email",
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "refs": {
+   "action": "read",
+   "inputs": [
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "register_application": {
+   "action": "admin",
+   "inputs": [
+    "allowed_origins",
+    "custom_sign_in_domain",
+    "customer_id",
+    "name",
+    "redirect_uris",
+    "theme",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "register_oauth_provider": {
+   "action": "admin",
+   "inputs": [
+    "client_id",
+    "client_secret",
+    "issuer",
+    "pool_id",
+    "provider",
+    "scopes"
+   ],
+   "method": "post"
+  },
+  "register_passkey": {
+   "action": "write",
+   "inputs": [
+    "attestation_object",
+    "challenge",
+    "client_data_json",
+    "name",
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "register_sso_provider": {
+   "action": "admin",
+   "inputs": [
+    "attribute_mapping",
+    "client_id",
+    "client_secret",
+    "issuer",
+    "jit_provisioning",
+    "metadata",
+    "name",
+    "organization_id",
+    "pool_id",
+    "protocol",
+    "scim_token",
+    "signing_certificate"
+   ],
+   "method": "post"
+  },
+  "reindex_artifacts": {
+   "action": "write",
+   "inputs": [
+    "id"
+   ],
+   "method": "post"
+  },
+  "remove_member": {
+   "action": "admin",
+   "inputs": [
+    "id"
+   ],
+   "method": "post"
+  },
+  "remove_space_store": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "dry_run"
+   ],
+   "method": "post"
+  },
+  "rename_drive": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "rename_repository": {
+   "action": "write",
+   "inputs": [
+    "id",
+    "name"
+   ],
+   "method": "post"
+  },
+  "render_pipeline": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "graph",
+    "project",
+    "step",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "renew_dynamic_secret": {
+   "action": "write",
+   "inputs": [
+    "lease_id",
+    "lifetime_seconds"
+   ],
+   "method": "post"
+  },
+  "renew_timestamp_evidence": {
+   "action": "admin",
+   "inputs": [
+    "checkpoint_digest"
+   ],
+   "method": "post"
+  },
+  "replicate_repository": {
+   "action": "admin",
+   "inputs": [
+    "repository_id",
+    "source_instance",
+    "source_url"
+   ],
+   "method": "post"
+  },
+  "replicate_transparency_log": {
+   "action": "admin",
+   "inputs": [
+    "source_url"
+   ],
+   "method": "post"
+  },
+  "repository_file": {
+   "action": "read",
+   "inputs": [
+    "id",
+    "path",
+    "ref",
+    "repository",
+    "repository_id",
+    "revision",
+    "units"
+   ],
+   "method": "get"
+  },
+  "repository_recovery_status": {
+   "action": "read",
+   "inputs": [
+    "repository_id"
+   ],
+   "method": "get"
+  },
+  "repository_refs": {
+   "action": "read",
+   "inputs": [
+    "id"
+   ],
+   "method": "get"
+  },
+  "repository_tree": {
+   "action": "read",
+   "inputs": [
+    "id",
+    "recursive",
+    "ref",
+    "repository",
+    "repository_id",
+    "revision"
+   ],
+   "method": "get"
+  },
+  "request_volume_snapshot": {
+   "action": "admin",
+   "inputs": [
+    "keep",
+    "schedule",
+    "target"
+   ],
+   "method": "post"
+  },
+  "resolve_conflict": {
+   "action": "write",
+   "inputs": [
+    "blob",
+    "conflict_id",
+    "path",
+    "ref",
+    "repository_id",
+    "resolution"
+   ],
+   "method": "post"
+  },
+  "resolve_dataset_file": {
+   "action": "read",
+   "inputs": [
+    "id",
+    "path",
+    "revision"
+   ],
+   "method": "get"
+  },
+  "resolve_drive_share_link": {
+   "action": "read",
+   "inputs": [
+    "path",
+    "ref",
+    "token"
+   ],
+   "method": "get"
+  },
+  "resolve_model": {
+   "action": "read",
+   "inputs": [
+    "name",
+    "namespace"
+   ],
+   "method": "get"
+  },
+  "resolve_model_file": {
+   "action": "read",
+   "inputs": [
+    "id",
+    "path",
+    "revision"
+   ],
+   "method": "get"
+  },
+  "restart_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "restore_drive_version": {
+   "action": "write",
+   "inputs": [
+    "change_id",
+    "path",
+    "ref",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "retry_application_webhook": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "event_id",
+    "webhook_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "retry_webhook_delivery": {
+   "action": "write",
+   "inputs": [
+    "delivery_id",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "revoke_agent_certificate": {
+   "action": "admin",
+   "inputs": [
+    "certificate_id"
+   ],
+   "method": "post"
+  },
+  "revoke_agent_session": {
+   "action": "write",
+   "inputs": [
+    "agent_session_id",
+    "customer_id"
+   ],
+   "method": "post"
+  },
+  "revoke_device": {
+   "action": "write",
+   "inputs": [
+    "id"
+   ],
+   "method": "post"
+  },
+  "revoke_drive_share_link": {
+   "action": "share",
+   "inputs": [
+    "link_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "revoke_dynamic_secret": {
+   "action": "write",
+   "inputs": [
+    "lease_id"
+   ],
+   "method": "post"
+  },
+  "revoke_offline_grant": {
+   "action": "admin",
+   "inputs": [
+    "id"
+   ],
+   "method": "post"
+  },
+  "revoke_session": {
+   "action": "write",
+   "inputs": [
+    "id"
+   ],
+   "method": "post"
+  },
+  "revoke_user_sessions": {
+   "action": "admin",
+   "inputs": [
+    "user_id"
+   ],
+   "method": "post"
+  },
+  "rewrap": {
+   "action": "write",
+   "inputs": [
+    "ciphertext",
+    "mount_id",
+    "name"
+   ],
+   "method": "post"
+  },
+  "rollback_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "image",
+    "source",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "rotate_agent_certificate": {
+   "action": "admin",
+   "inputs": [
+    "certificate_id",
+    "lifetime_seconds",
+    "public_key"
+   ],
+   "method": "post"
+  },
+  "rotate_application_signing_key": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "rotate_customer_kek": {
+   "action": "admin",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "post"
+  },
+  "rotate_encryption_key": {
+   "action": "write",
+   "inputs": [
+    "mount_id",
+    "name"
+   ],
+   "method": "post"
+  },
+  "rotate_identity": {
+   "action": "admin",
+   "inputs": [],
+   "method": "post"
+  },
+  "rotate_tuf_root": {
+   "action": "admin",
+   "inputs": [
+    "root"
+   ],
+   "method": "post"
+  },
+  "run_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset_path",
+    "graph",
+    "holdout_fraction",
+    "model_name",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "run_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "delivery_token",
+    "graph",
+    "intent",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "save_pipeline": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "edges",
+    "graph",
+    "intent",
+    "new_name",
+    "nodes",
+    "project",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "scale_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "replicas",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "schedule_agent": {
+   "action": "write",
+   "inputs": [
+    "agent_id",
+    "cron",
+    "customer_id",
+    "input",
+    "time_zone",
+    "trigger",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "scim_delete_group": {
+   "action": "write",
+   "inputs": [
+    "bearer_token",
+    "resource_id"
+   ],
+   "method": "post"
+  },
+  "scim_delete_user": {
+   "action": "write",
+   "inputs": [
+    "bearer_token",
+    "resource_id"
+   ],
+   "method": "post"
+  },
+  "scim_get_group": {
+   "action": "read",
+   "inputs": [
+    "bearer_token",
+    "resource_id"
+   ],
+   "method": "post"
+  },
+  "scim_get_user": {
+   "action": "read",
+   "inputs": [
+    "bearer_token",
+    "resource_id"
+   ],
+   "method": "post"
+  },
+  "scim_list_groups": {
+   "action": "read",
+   "inputs": [
+    "bearer_token",
+    "count",
+    "filter",
+    "start_index"
+   ],
+   "method": "post"
+  },
+  "scim_list_users": {
+   "action": "read",
+   "inputs": [
+    "bearer_token",
+    "count",
+    "filter",
+    "start_index"
+   ],
+   "method": "post"
+  },
+  "scim_patch_group": {
+   "action": "write",
+   "inputs": [
+    "bearer_token",
+    "patch",
+    "resource_id"
+   ],
+   "method": "post"
+  },
+  "scim_patch_user": {
+   "action": "write",
+   "inputs": [
+    "bearer_token",
+    "patch",
+    "resource_id"
+   ],
+   "method": "post"
+  },
+  "scim_upsert_group": {
+   "action": "write",
+   "inputs": [
+    "bearer_token",
+    "resource"
+   ],
+   "method": "post"
+  },
+  "scim_upsert_user": {
+   "action": "write",
+   "inputs": [
+    "bearer_token",
+    "resource"
+   ],
+   "method": "post"
+  },
+  "score": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "dataset",
+    "dataset_path",
+    "entities",
+    "intent",
+    "model",
+    "model_id",
+    "rows",
+    "top_k",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "search": {
+   "action": "read",
+   "inputs": [
+    "change",
+    "customer",
+    "customer_id",
+    "history",
+    "limit",
+    "query",
+    "ref",
+    "repository",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "search_drives": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "limit",
+    "q",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "search_index": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "field",
+    "fields",
+    "index",
+    "index_id",
+    "query",
+    "top_k",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "search_workspace_index": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "field",
+    "intent",
+    "query",
+    "target",
+    "top_k",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "secret_metadata": {
+   "action": "read",
+   "inputs": [
+    "mount_id",
+    "name"
+   ],
+   "method": "get"
+  },
+  "send_ask_message": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "conversation_id",
+    "customer_id",
+    "kind",
+    "message",
+    "page",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "server_info": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "service_connection": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "service_id"
+   ],
+   "method": "post"
+  },
+  "set_app_auth": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "auth",
+    "confirm_public",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "set_app_env": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "key",
+    "secret",
+    "secret_ref",
+    "value",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "set_app_zetta_binding": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "attached",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "set_audit_retention": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "days"
+   ],
+   "method": "post"
+  },
+  "set_branch_protection": {
+   "action": "admin",
+   "inputs": [
+    "allowed_pushers",
+    "fast_forward_only",
+    "ref",
+    "repository_id",
+    "required_review",
+    "required_verification"
+   ],
+   "method": "post"
+  },
+  "set_customer_credential_policy": {
+   "action": "admin",
+   "inputs": [
+    "allow_non_expiring_credentials",
+    "customer_id"
+   ],
+   "method": "post"
+  },
+  "set_environment_env": {
+   "action": "write",
+   "inputs": [
+    "environment",
+    "key",
+    "repository_id",
+    "value"
+   ],
+   "method": "post"
+  },
+  "set_member_role": {
+   "action": "admin",
+   "inputs": [
+    "id",
+    "role"
+   ],
+   "method": "post"
+  },
+  "set_price_list": {
+   "action": "admin",
+   "inputs": [
+    "currency",
+    "effective_from",
+    "prices"
+   ],
+   "method": "post"
+  },
+  "set_repository_visibility": {
+   "action": "write",
+   "inputs": [
+    "id",
+    "visibility"
+   ],
+   "method": "post"
+  },
+  "set_storage_quota": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "quota_bytes"
+   ],
+   "method": "post"
+  },
+  "set_training_schedule": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "intent",
+    "training",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "set_usage_limit": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "dimension",
+    "limit",
+    "warn_percent"
+   ],
+   "method": "post"
+  },
+  "set_workspace_storage": {
+   "action": "admin",
+   "inputs": [
+    "storage_gi",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "settle_ask_turn": {
+   "action": "write",
+   "inputs": [
+    "conversation_id",
+    "customer_id",
+    "kind",
+    "task_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "share_drive_folder": {
+   "action": "share",
+   "inputs": [
+    "attestation_digest",
+    "path",
+    "principal_taap_id",
+    "recipient",
+    "ref",
+    "repository_id",
+    "role"
+   ],
+   "method": "post"
+  },
+  "sign": {
+   "action": "write",
+   "inputs": [
+    "message",
+    "mount_id",
+    "name",
+    "version"
+   ],
+   "method": "post"
+  },
+  "sign_in_passkey": {
+   "action": "write",
+   "inputs": [
+    "authenticator_data",
+    "challenge",
+    "client_data_json",
+    "credential_id",
+    "device_name",
+    "pool_id",
+    "signature"
+   ],
+   "method": "post"
+  },
+  "sign_in_password": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "email",
+    "password",
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "sign_in_saml": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "provider_id",
+    "saml_response",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "sign_in_sso": {
+   "action": "write",
+   "inputs": [
+    "claims",
+    "device_name",
+    "display_name",
+    "email",
+    "issuer",
+    "provider_id",
+    "subject",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "sign_in_taap": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "identity_document",
+    "issued_at",
+    "nonce",
+    "pool_id",
+    "signature"
+   ],
+   "method": "post"
+  },
+  "sign_up_password": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "display_name",
+    "email",
+    "identity_document",
+    "password",
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "stage_repository_file": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "dataset_repository_id",
+    "dataset_revision",
+    "files",
+    "id",
+    "message",
+    "model_attestation",
+    "oid",
+    "operations",
+    "revision",
+    "run_attestation",
+    "size"
+   ],
+   "method": "post"
+  },
+  "start_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "start_experiment": {
+   "action": "write",
+   "inputs": [
+    "budgets",
+    "confirm",
+    "customer_id",
+    "dataset",
+    "differential_privacy",
+    "from_defaults",
+    "methodology",
+    "name",
+    "objective",
+    "pipeline",
+    "project",
+    "pruner",
+    "released_metrics",
+    "sampler",
+    "search_space",
+    "seed",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "start_oauth": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "identity_document",
+    "pool_id",
+    "provider"
+   ],
+   "method": "post"
+  },
+  "start_run": {
+   "action": "write",
+   "inputs": [
+    "algorithm",
+    "answer_tokens",
+    "arm_caps",
+    "arm_column",
+    "arms",
+    "baseline_arm",
+    "bootstrap_samples",
+    "burn_in",
+    "classifier_regularization",
+    "clip_max",
+    "clip_min",
+    "confidence",
+    "context_columns",
+    "coordinate",
+    "customer_id",
+    "dataset",
+    "dataset_path",
+    "decision_column",
+    "default_arm_cap",
+    "delta",
+    "document_column",
+    "document_id_column",
+    "duration_column",
+    "embedder_directory",
+    "epsilon",
+    "exploration_floor",
+    "feature_time_column",
+    "fields",
+    "graph",
+    "group_column",
+    "holdout_fraction",
+    "intent",
+    "interval_width",
+    "label_efficiency",
+    "labels_column",
+    "max_depth",
+    "max_intervals",
+    "max_tokens",
+    "minimum_relevance",
+    "model_name",
+    "noise",
+    "nominal_coverage",
+    "num_trees",
+    "optimization",
+    "outcome_column",
+    "posterior_draws",
+    "project",
+    "query_column",
+    "qwen_directory",
+    "relevant_id_column",
+    "review_threshold",
+    "reward_column",
+    "ridge",
+    "seed",
+    "streaming",
+    "synthetic_rows",
+    "targeting_fraction",
+    "text_column",
+    "top_k",
+    "treatment_column",
+    "trocr_directory",
+    "validation_fraction",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "start_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset",
+    "delivery",
+    "level",
+    "project",
+    "roi_model",
+    "solution",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "start_sso_oidc": {
+   "action": "write",
+   "inputs": [
+    "device_name",
+    "provider_id",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "start_workspace": {
+   "action": "write",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "post"
+  },
+  "stop_agent_launch": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "launch_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "stop_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "stop_experiment": {
+   "action": "write",
+   "inputs": [
+    "confirm",
+    "customer_id",
+    "experiment_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "stop_experiment_trial": {
+   "action": "write",
+   "inputs": [
+    "confirm",
+    "customer_id",
+    "experiment_id",
+    "run",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "store_connection": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "store_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "suspend_application_user": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "user_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "tail_experiment_events": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "from_sequence",
+    "id",
+    "kind",
+    "max_events",
+    "wait_ms",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "test_sso_provider": {
+   "action": "admin",
+   "inputs": [
+    "provider_id"
+   ],
+   "method": "post"
+  },
+  "timestamp_checkpoint": {
+   "action": "admin",
+   "inputs": [],
+   "method": "post"
+  },
+  "timestamp_evidence": {
+   "action": "read",
+   "inputs": [
+    "checkpoint_digest"
+   ],
+   "method": "get"
+  },
+  "transcribe": {
+   "action": "use",
+   "inputs": [
+    "audio_base64",
+    "language",
+    "name"
+   ],
+   "method": "post"
+  },
+  "transfer_repository": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id"
+   ],
+   "method": "post"
+  },
+  "transparency_checkpoint": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "transparency_consistency_proof": {
+   "action": "read",
+   "inputs": [
+    "new_tree_size",
+    "old_tree_size"
+   ],
+   "method": "get"
+  },
+  "transparency_identity_scan": {
+   "action": "read",
+   "inputs": [
+    "identity"
+   ],
+   "method": "get"
+  },
+  "transparency_inclusion_proof": {
+   "action": "read",
+   "inputs": [
+    "leaf_index",
+    "tree_size"
+   ],
+   "method": "get"
+  },
+  "transparency_log_configuration": {
+   "action": "read",
+   "inputs": [],
+   "method": "get"
+  },
+  "transparency_proof_bundle": {
+   "action": "read",
+   "inputs": [
+    "leaf_index"
+   ],
+   "method": "get"
+  },
+  "transparency_tile": {
+   "action": "read",
+   "inputs": [
+    "index",
+    "level",
+    "width"
+   ],
+   "method": "get"
+  },
+  "tuf_metadata": {
+   "action": "read",
+   "inputs": [
+    "role",
+    "version"
+   ],
+   "method": "get"
+  },
+  "unbind_service_from_app": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "service_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "undelete_secret_versions": {
+   "action": "write",
+   "inputs": [
+    "mount_id",
+    "name",
+    "versions"
+   ],
+   "method": "post"
+  },
+  "unexpose_index": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "index",
+    "index_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "unexpose_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "model",
+    "model_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "unroute_image_repository": {
+   "action": "admin",
+   "inputs": [
+    "customer_id",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "unschedule_agent": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "schedule_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "unset_app_env": {
+   "action": "write",
+   "inputs": [
+    "app_id",
+    "customer_id",
+    "key",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "unset_environment_env": {
+   "action": "write",
+   "inputs": [
+    "environment",
+    "key",
+    "repository_id",
+    "value"
+   ],
+   "method": "post"
+  },
+  "update_agent": {
+   "action": "write",
+   "inputs": [
+    "chat_capable",
+    "customer_id",
+    "definition",
+    "description",
+    "endpoint",
+    "goal",
+    "goals",
+    "id",
+    "intent",
+    "is_default",
+    "kind",
+    "manifesto",
+    "model",
+    "model_id",
+    "model_name",
+    "model_version",
+    "name",
+    "pipelines",
+    "purpose",
+    "runtime",
+    "skills",
+    "status",
+    "system_prompt",
+    "tools",
+    "trigger",
+    "work_area",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "update_application_organization": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "metadata",
+    "name",
+    "organization_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "update_application_theme": {
+   "action": "admin",
+   "inputs": [
+    "application_id",
+    "theme",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "update_issue": {
+   "action": "write",
+   "inputs": [
+    "assignees",
+    "body",
+    "issue_id",
+    "labels",
+    "references",
+    "repository_id",
+    "state",
+    "title"
+   ],
+   "method": "post"
+  },
+  "update_policy": {
+   "action": "write",
+   "inputs": [
+    "config",
+    "customer_id",
+    "intent",
+    "policy_id",
+    "reason",
+    "tuning",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "update_review": {
+   "action": "write",
+   "inputs": [
+    "repository_id",
+    "review_id",
+    "state"
+   ],
+   "method": "post"
+  },
+  "update_solution": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "decision",
+    "id",
+    "measurement",
+    "methodologies",
+    "name",
+    "notes",
+    "pipeline",
+    "problem",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "update_stream": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dry_run",
+    "settings",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "post"
+  },
+  "update_stream_message": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "expected_revision",
+    "payload",
+    "redeliver",
+    "sequence",
+    "topic",
+    "workspace_id",
+    "zetta"
+   ],
+   "method": "post"
+  },
+  "update_transcript": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "text",
+    "title",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "update_workspace": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "desired",
+    "environment",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "upload_dataset": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "customer_id",
+    "database",
+    "format",
+    "if_exists",
+    "intent",
+    "replication_factor",
+    "table_name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "upload_drive_entries": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "files",
+    "on_conflict",
+    "parent_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "upload_drive_files": {
+   "action": "write",
+   "inputs": [
+    "files",
+    "path",
+    "ref",
+    "repository_id"
+   ],
+   "method": "post"
+  },
+  "upsert_scim_group": {
+   "action": "admin",
+   "inputs": [
+    "attributes",
+    "display_name",
+    "external_id",
+    "member_external_ids",
+    "provider_id",
+    "team_name"
+   ],
+   "method": "post"
+  },
+  "upsert_scim_user": {
+   "action": "admin",
+   "inputs": [
+    "active",
+    "attributes",
+    "display_name",
+    "email",
+    "external_id",
+    "provider_id",
+    "taap_id"
+   ],
+   "method": "post"
+  },
+  "usage_limits": {
+   "action": "read",
+   "inputs": [
+    "customer_id"
+   ],
+   "method": "get"
+  },
+  "usage_over_time": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "dimensions",
+    "from",
+    "granularity",
+    "to",
+    "workspace_ids"
+   ],
+   "method": "get"
+  },
+  "validate_experiment": {
+   "action": "read",
+   "inputs": [
+    "budgets",
+    "customer_id",
+    "dataset",
+    "differential_privacy",
+    "from_defaults",
+    "intent",
+    "methodology",
+    "name",
+    "objective",
+    "pipeline",
+    "project",
+    "pruner",
+    "released_metrics",
+    "sampler",
+    "search_space",
+    "seed",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "verify": {
+   "action": "write",
+   "inputs": [
+    "message",
+    "mount_id",
+    "name",
+    "signature",
+    "version"
+   ],
+   "method": "post"
+  },
+  "verify_agent_session_drip": {
+   "action": "read",
+   "inputs": [
+    "agent_session_id",
+    "body",
+    "customer_id",
+    "signature"
+   ],
+   "method": "post"
+  },
+  "verify_audit": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "verify_mfa": {
+   "action": "write",
+   "inputs": [
+    "code",
+    "device_name",
+    "email",
+    "password",
+    "pool_id"
+   ],
+   "method": "post"
+  },
+  "verify_model_provenance": {
+   "action": "write",
+   "inputs": [
+    "content",
+    "dataset_repository_id",
+    "dataset_revision",
+    "files",
+    "id",
+    "message",
+    "model_attestation",
+    "oid",
+    "operations",
+    "revision",
+    "run_attestation",
+    "size"
+   ],
+   "method": "post"
+  },
+  "viewer": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "void_invoice": {
+   "action": "admin",
+   "inputs": [
+    "invoice_id",
+    "note"
+   ],
+   "method": "post"
+  },
+  "volume_snapshots": {
+   "action": "read",
+   "inputs": [
+    "target"
+   ],
+   "method": "get"
+  },
+  "workspace_act": {
+   "action": "write",
+   "inputs": [
+    "capability",
+    "customer_id",
+    "input",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "workspace_engine_info": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "workspace_openapi": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "workspace_query": {
+   "action": "read",
+   "inputs": [
+    "capability",
+    "customer_id",
+    "input",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "workspace_sql": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "database",
+    "statement",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "workspace_status": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  }
+ },
+ "lake_version": "0.0.1"
+}
