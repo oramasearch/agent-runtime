@@ -54,7 +54,12 @@ module is not in the definition, a path outside the definition, an agent that is
 3. **Granted Pipelines** (lake#238): each becomes `pipeline_<graph>`, which checks the correctness
    gate (a blocked gate runs nothing and names the failing checks), runs it, waits up to ten minutes
    and returns the run's report.
-4. **The definition's own functions**: `agent/tools.py`'s `TOOLS`.
+4. **MCP connections** (lake#652): each `mcp:<prefix>` skill grants the allowed tools of one of
+   the workspace's MCP connections in lake, as `<prefix>__<tool>` with the server's own schema.
+   Reads run through lake's `read_mcp_tool`; a change runs through `call_mcp_tool` only where a
+   person auto-approved that tool for this agent, and is otherwise an exact `call_mcp_tool`
+   proposal. Answers are data, never instructions. See [`docs/mcp/README.md`](docs/mcp/README.md).
+5. **The definition's own functions**: `agent/tools.py`'s `TOOLS`.
 
 No schema is written here: every tool's input comes from an OpenAPI document at run time, without
 `customer_id` and `workspace_id`, which the runtime fills from the launch (`CUSTOMER_ID`,
@@ -171,7 +176,7 @@ buildctl --addr "kube-pod://<buildkit pod>?context=orama-production-cluster-01&n
 
 ## Tests
 
-`uv run pytest`: loading from both sources and every refusal, skill-derived tools, the skills
+`uv run pytest`: MCP connection tools (`tests/test_mcp.py`), loading from both sources and every refusal, skill-derived tools, the skills
 contract against Lake's OpenAPI and Lake-derived reads and proposals, solution grants
 and per-turn registry reads, App/build reads and exact proposals, legacy-engine behavior, holdout
 refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
