@@ -4,7 +4,8 @@ The **blank Python agent**: one image, `oramasearch/agent-runtime`, that runs ev
 agent in lake ([lake#228](https://github.com/oramasearch/lake/issues/228),
 [zetta#1016](https://github.com/oramasearch/zetta/issues/1016)). It holds no agent of its own: at
 start it reads the agent's `AgentRecord` from the customer's workspace, loads its instructions and
-code, derives its tools, and runs it on the OpenAI SDK. **New agents are data, not images.**
+code, derives its tools, and runs it on the OpenAI SDK pointed at lake's model gateway. **New
+agents are data, not images.**
 
 The specialized agents of the Agent Library (Ask Orama, the Project Agent, Auto-Suggest) are
 separate repos with their own images; this runtime is for the agents people build in Train →
@@ -79,8 +80,16 @@ to the agent and no alternate action path is attempted. See
 | `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools and model. `AGENT_SERVICE_TOKEN`, when set, is required as a bearer |
 
 Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, `LAKE_TOKEN` (the
-agent's lake key), `CUSTOMER_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`, `OPENAI_API_KEY` (the
-general Orama key), `AGENT_MODEL` (default `gpt-5.5`), `TRACE_DIR`, `PORT`.
+agent's lake key), `CUSTOMER_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`, `AGENT_MODEL` (default
+`gpt-5.5`), `TRACE_DIR`, `PORT`.
+
+**The model is reached through lake** (lake#248, lake `docs/api/model-gateway.md`). Every model call
+goes to `<LAKE_URL>/openai/v1` with the run's own lake key as the API key (`model.py`): a launch's
+`LAKE_TOKEN`, or, for a per-turn agent, the turn's `lake_token`. Lake sends it to the provider with
+Orama's key, counts its tokens in the run's workspace by agent, run and model, and refuses it once
+the account's monthly model-token limit is used up. The runtime holds no `OPENAI_API_KEY`, and
+neither can the code it runs: an entrypoint's `context.client` is that same client, so a person's
+agent code reaches the model only through lake.
 
 **A lake-wide library agent on this runtime** (`AGENT_PER_TURN_CREDENTIALS=1`, AgentCreator) also
 takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`, lake#269). `lake_bus.py`
