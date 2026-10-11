@@ -228,6 +228,18 @@
    ],
    "method": "post"
   },
+  "begin_mcp_connection_sign_in": {
+   "action": "write",
+   "inputs": [
+    "client_id",
+    "customer_id",
+    "id",
+    "mount_id",
+    "secret_name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "begin_passkey_registration": {
    "action": "write",
    "inputs": [
@@ -325,6 +337,18 @@
    ],
    "method": "get"
   },
+  "call_mcp_tool": {
+   "action": "write",
+   "inputs": [
+    "arguments",
+    "connection_id",
+    "customer_id",
+    "tool",
+    "via",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "cancel_build": {
    "action": "write",
    "inputs": [
@@ -388,6 +412,7 @@
    "inputs": [
     "customer_id",
     "graph",
+    "include_not_applicable",
     "intent",
     "project",
     "workspace_id"
@@ -487,6 +512,16 @@
     "name",
     "project",
     "source",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "complete_mcp_connection_sign_in": {
+   "action": "write",
+   "inputs": [
+    "code",
+    "customer_id",
+    "state",
     "workspace_id"
    ],
    "method": "post"
@@ -723,6 +758,7 @@
     "repository_id",
     "repository_name",
     "storage",
+    "store_id",
     "workspace_id"
    ],
    "method": "post"
@@ -852,6 +888,29 @@
     "body",
     "issue_id",
     "repository_id"
+   ],
+   "method": "post"
+  },
+  "create_mcp_connection": {
+   "action": "write",
+   "inputs": [
+    "auth",
+    "customer_id",
+    "name",
+    "transport",
+    "url",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "create_mcp_connection_agent": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "name",
+    "prompt",
+    "workspace_id"
    ],
    "method": "post"
   },
@@ -1184,12 +1243,32 @@
    ],
    "method": "post"
   },
+  "delete_ask_conversation": {
+   "action": "write",
+   "inputs": [
+    "conversation_id",
+    "customer_id",
+    "dry_run",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "delete_connection": {
    "action": "write",
    "inputs": [
     "customer_id",
     "intent",
     "name",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_dataset": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dry_run",
+    "id",
     "workspace_id"
    ],
    "method": "post"
@@ -1235,6 +1314,46 @@
    ],
    "method": "post"
   },
+  "delete_index": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dry_run",
+    "id",
+    "index_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_mcp_connection": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dry_run",
+    "id",
+    "model_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_organization": {
+   "action": "admin",
+   "inputs": [
+    "confirm",
+    "dry_run",
+    "organization_id"
+   ],
+   "method": "post"
+  },
   "delete_project": {
    "action": "write",
    "inputs": [
@@ -1249,6 +1368,26 @@
    "action": "write",
    "inputs": [
     "id"
+   ],
+   "method": "post"
+  },
+  "delete_run": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dry_run",
+    "id",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "delete_secret_mount": {
+   "action": "admin",
+   "inputs": [
+    "confirm",
+    "dry_run",
+    "mount_id"
    ],
    "method": "post"
   },
@@ -1903,6 +2042,15 @@
    ],
    "method": "get"
   },
+  "get_mcp_connection": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
   "get_membership": {
    "action": "read",
    "inputs": [
@@ -1996,6 +2144,7 @@
    "action": "read",
    "inputs": [
     "customer_id",
+    "include_entity_keys",
     "intent",
     "run",
     "run_id",
@@ -2302,6 +2451,16 @@
    "action": "read",
    "inputs": [
     "include_internal"
+   ],
+   "method": "get"
+  },
+  "list_agent_revisions": {
+   "action": "read",
+   "inputs": [
+    "agent_id",
+    "customer_id",
+    "limit",
+    "workspace_id"
    ],
    "method": "get"
   },
@@ -2617,6 +2776,34 @@
    ],
    "method": "get"
   },
+  "list_mcp_connection_calls": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "limit",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_mcp_connection_tools": {
+   "action": "read",
+   "inputs": [
+    "allowed_only",
+    "connection_id",
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "list_mcp_connections": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
   "list_memberships": {
    "action": "read",
    "inputs": [
@@ -2914,6 +3101,20 @@
    ],
    "method": "post"
   },
+  "load_drive_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "drive_id",
+    "id",
+    "kind",
+    "metrics",
+    "name",
+    "version_of",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "map_review_anchors": {
    "action": "write",
    "inputs": [
@@ -2961,6 +3162,14 @@
    ],
    "method": "post"
   },
+  "model_completion": {
+   "action": "write",
+   "inputs": [
+    "endpoint",
+    "request"
+   ],
+   "method": "post"
+  },
   "model_health": {
    "action": "read",
    "inputs": [
@@ -3003,6 +3212,17 @@
     "path",
     "ref",
     "repository_id"
+   ],
+   "method": "post"
+  },
+  "move_model_to_project": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "model_id",
+    "project_name",
+    "workspace_id"
    ],
    "method": "post"
   },
@@ -3224,6 +3444,18 @@
    ],
    "method": "get"
   },
+  "read_mcp_tool": {
+   "action": "read",
+   "inputs": [
+    "arguments",
+    "connection_id",
+    "customer_id",
+    "tool",
+    "via",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
   "read_secret": {
    "action": "read",
    "inputs": [
@@ -3336,6 +3568,15 @@
    ],
    "method": "post"
   },
+  "refresh_mcp_connection": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "refs": {
    "action": "read",
    "inputs": [
@@ -3352,6 +3593,21 @@
     "name",
     "redirect_uris",
     "theme",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
+  "register_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "intent",
+    "kind",
+    "metrics",
+    "name",
+    "source",
+    "version_of",
+    "weights",
     "workspace_id"
    ],
    "method": "post"
@@ -3593,6 +3849,20 @@
    ],
    "method": "post"
   },
+  "retrain_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset_path",
+    "entity_column",
+    "holdout_fraction",
+    "intent",
+    "model_id",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "retry_application_webhook": {
    "action": "admin",
    "inputs": [
@@ -3645,6 +3915,22 @@
    "action": "write",
    "inputs": [
     "lease_id"
+   ],
+   "method": "post"
+  },
+  "revoke_grant": {
+   "action": "admin",
+   "inputs": [
+    "dry_run",
+    "grant_id"
+   ],
+   "method": "post"
+  },
+  "revoke_invitation": {
+   "action": "admin",
+   "inputs": [
+    "dry_run",
+    "invitation_id"
    ],
    "method": "post"
   },
@@ -3942,6 +4228,7 @@
    "inputs": [
     "customer_id",
     "field",
+    "fields",
     "intent",
     "query",
     "target",
@@ -4053,6 +4340,18 @@
     "key",
     "repository_id",
     "value"
+   ],
+   "method": "post"
+  },
+  "set_mcp_tool_auto_approve": {
+   "action": "write",
+   "inputs": [
+    "agent",
+    "auto_approve",
+    "connection_id",
+    "customer_id",
+    "tool",
+    "workspace_id"
    ],
    "method": "post"
   },
@@ -4453,6 +4752,18 @@
    ],
    "method": "get"
   },
+  "test_mcp_connection": {
+   "action": "write",
+   "inputs": [
+    "auth",
+    "customer_id",
+    "id",
+    "transport",
+    "url",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "test_sso_provider": {
    "action": "admin",
    "inputs": [
@@ -4472,12 +4783,29 @@
    ],
    "method": "get"
   },
+  "train_model": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset_path",
+    "entity_column",
+    "holdout_fraction",
+    "intent",
+    "methodology",
+    "name",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "transcribe": {
-   "action": "use",
+   "action": "write",
    "inputs": [
     "audio_base64",
+    "customer_id",
     "language",
-    "name"
+    "name",
+    "workspace_id"
    ],
    "method": "post"
   },
@@ -4689,6 +5017,26 @@
     "repository_id",
     "state",
     "title"
+   ],
+   "method": "post"
+  },
+  "update_mcp_connection": {
+   "action": "write",
+   "inputs": [
+    "agent_id",
+    "auth",
+    "customer_id",
+    "exported",
+    "id",
+    "input_topic",
+    "name",
+    "notifications_topic",
+    "output_topic",
+    "subscribe_resources",
+    "tools",
+    "transport",
+    "url",
+    "workspace_id"
    ],
    "method": "post"
   },
