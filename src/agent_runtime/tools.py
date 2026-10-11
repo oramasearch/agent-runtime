@@ -1,6 +1,6 @@
 """The tools a user-created agent gets, derived rather than written.
 
-Four sources, one list:
+Five sources, one list:
 
 1. **The workspace's Zetta capabilities**, from lake's filtered OpenAPI (never a hand-written
    table: the eval generator's first run failed on a hand-written parameter name). Only the
@@ -10,7 +10,10 @@ Four sources, one list:
    changes become exact proposals and never call the mutation route from this runtime.
 3. **Granted Pipelines** (lake#238): each approved Pipeline on the record becomes
    `pipeline_<name>`, which gates, runs and returns the run's report.
-4. **The definition's own functions**: `agent/tools.py` may export `TOOLS`, plain Python callables
+4. **MCP connections** (lake#652): each `mcp:<prefix>` skill grants that connection's allowed
+   tools, `<prefix>__<tool>`, through lake (`agent_runtime/mcp.py`): reads run, auto-approved
+   changes run, other changes are proposals.
+5. **The definition's own functions**: `agent/tools.py` may export `TOOLS`, plain Python callables
    whose docstrings describe them.
 
 The **work area** narrows every call: an agent confined to one project cannot name another, and
@@ -75,6 +78,16 @@ class Tool:
     call: Callable[[dict[str, Any]], Reply]
     proposal: bool = False
     proposal_impact: str = ""
+    # What a proposal asks lake to run, when it is not the tool itself (an MCP change proposes
+    # `call_mcp_tool` with the connection, the tool and its arguments).
+    proposal_capability: str = ""
+    proposal_input: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+
+    def proposed(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """The proposal a turn records for a person to confirm in lake."""
+        return {"capability": self.proposal_capability or self.name,
+                "input": self.proposal_input(arguments) if self.proposal_input else arguments,
+                "impact": self.proposal_impact}
 
     def spec(self) -> dict[str, Any]:
         return {"type": "function", "function": {"name": self.name,
@@ -294,8 +307,10 @@ def definition_tools(agent: Agent) -> list[Tool]:
 
 def all_tools(agent: Agent, lake: Lake, openapi: dict[str, Any],
               lake_openapi: dict[str, Any] | None = None) -> list[Tool]:
+    from agent_runtime.mcp import mcp_tools
+
     tools = workspace_tools(agent, lake, openapi) + lake_tools(lake, lake_openapi or {}) \
-        + pipeline_tools(agent, lake) + definition_tools(agent)
+        + pipeline_tools(agent, lake) + mcp_tools(agent, lake) + definition_tools(agent)
     if agent.tool_allow_list is not None:
         allowed = set(agent.tool_allow_list)
         tools = [tool for tool in tools if tool.name in allowed]

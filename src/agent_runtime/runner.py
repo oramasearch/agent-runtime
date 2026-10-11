@@ -33,6 +33,7 @@ from openai import OpenAI
 from agent_runtime import apps, definition, lake_bus
 from agent_runtime.lake import Lake, LoadError
 from agent_runtime.loop import Context, Result, run_entrypoint, run_loop, system_message
+from agent_runtime.mcp import CONTEXT_PREFIX as MCP_CONTEXT_PREFIX, context_message
 from agent_runtime.solutions import read_solution_catalog, replace_context
 from agent_runtime.tools import Tool, all_tools
 
@@ -46,6 +47,15 @@ class Loaded:
     model: str
     lake: Lake | None = None
 
+
+
+def mcp_context(messages: list[dict], tools: list[Tool]) -> None:
+    """This turn's connected MCP tools and the rule that their answers are data (lake#652)."""
+    messages[:] = [m for m in messages if not (
+        m.get("role") == "system" and str(m.get("content", "")).startswith(MCP_CONTEXT_PREFIX))]
+    message = context_message(tools)
+    if message is not None:
+        messages.append(message)
 
 def load(lake: Lake, agent_id: str, record: dict[str, Any] | None = None) -> Loaded:
     """The agent's record, its definition, and its tools. Raises LoadError before any model call."""
@@ -89,6 +99,7 @@ def run_once(loaded: Loaded, task: Any, client: OpenAI) -> Result:
     messages = [system_message(loaded.agent)]
     replace_context(messages, catalog)
     apps.replace_context(messages, app_context)
+    mcp_context(messages, loaded.tools)
     messages.append({"role": "user", "content": text})
     result = run_loop(loaded.agent, loaded.tools, messages, client, loaded.model)
     result.calls[0:0] = catalog.calls
@@ -176,6 +187,7 @@ def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: di
         return result
     replace_context(history, catalog)
     apps.replace_context(history, app_context)
+    mcp_context(history, loaded.tools)
     history.append({"role": "user", "content": message})
     loop_result = run_loop(loaded.agent, loaded.tools, history, client, loaded.model)
     loop_result.calls[0:0] = catalog.calls

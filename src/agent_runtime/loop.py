@@ -89,11 +89,7 @@ def run_loop(agent: Agent, tools: list[Tool], messages: list[dict[str, Any]], cl
             reply = (tool.call(arguments) if tool is not None else
                      _unknown(call.function.name))
             if tool is not None and tool.proposal and reply.ok:
-                result.proposals.append({
-                    "capability": tool.name,
-                    "input": arguments,
-                    "impact": tool.proposal_impact,
-                })
+                result.proposals.append(tool.proposed(arguments))
             result.calls.append({"tool": call.function.name, "arguments": arguments,
                                  "ok": reply.ok, "observation": reply.value if reply.ok else None,
                                  "error": reply.error or None})
@@ -126,11 +122,7 @@ class Context:
             if tool.name == name:
                 reply = tool.call(arguments)
                 if tool.proposal and reply.ok:
-                    self.proposals.append({
-                        "capability": tool.name,
-                        "input": arguments,
-                        "impact": tool.proposal_impact,
-                    })
+                    self.proposals.append(tool.proposed(arguments))
                 return reply
         return _unknown(name)
 
