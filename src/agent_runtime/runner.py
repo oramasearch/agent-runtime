@@ -9,8 +9,8 @@ the exit code says how it went: 0 finished, 2 finished without an answer, 1 coul
 it.
 
 Configuration is the environment the operator sets for a launch (orama-operator#185): `LAKE_URL`,
-`LAKE_TOKEN` (the agent's lake key), `CUSTOMER_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,
-`AGENT_MODEL`, `TRACE_DIR`, `PORT` and `AGENT_SERVICE_TOKEN`.
+`LAKE_TOKEN` (the agent's lake key), `CUSTOMER_ID`, `WORKSPACE_ID`, `AGENT_ID`, `AGENT_MODE`,
+`AGENT_INPUT`, `AGENT_MODEL`, `TRACE_DIR`, `PORT` and `AGENT_SERVICE_TOKEN`.
 
 The model is reached through lake's model gateway (lake#248, `model.py`): `<LAKE_URL>/openai/v1`
 with the run's own lake key (`LAKE_TOKEN`, or a per-turn agent's turn `lake_token`) as the API key,
@@ -134,7 +134,8 @@ def termination_summary(summary: dict[str, Any], path: Path = Path("/dev/termina
 
 
 def lake_from_environment() -> Lake:
-    return Lake(os.environ["LAKE_URL"], os.environ["LAKE_TOKEN"], os.environ["CUSTOMER_ID"])
+    return Lake(os.environ["LAKE_URL"], os.environ["LAKE_TOKEN"], os.environ["CUSTOMER_ID"],
+                workspace_id=os.environ.get("WORKSPACE_ID", ""))
 
 
 def job(record: dict[str, Any] | None = None) -> int:
@@ -219,7 +220,8 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
     token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
     if not token or not customer:
         raise LoadError("this agent works per turn: the turn needs lake_token and customer_id")
-    lake = Lake(os.environ["LAKE_URL"], token, customer)
+    lake = Lake(os.environ["LAKE_URL"], token, customer,
+                workspace_id=turn.get("workspace_id") or "")
     try:
         openapi = lake.zetta_openapi()
     except Exception:  # a space without a ready workspace still gets an answer

@@ -39,9 +39,13 @@ class Lake:
     """lake's REST surface, as the agent's token."""
 
     def __init__(self, base_url: str, token: str, customer_id: str,
-                 transport: httpx.BaseTransport | None = None, timeout: float = 120.0) -> None:
+                 transport: httpx.BaseTransport | None = None, timeout: float = 120.0,
+                 workspace_id: str = "") -> None:
         self.base_url = base_url.rstrip("/")
         self.customer_id = customer_id
+        # The launch's workspace (WORKSPACE_ID). A launch's LAKE_URL already ends in /w/<id>, from
+        # which lake takes it too; sent explicitly it must match.
+        self.workspace_id = workspace_id
         self.client = httpx.Client(base_url=self.base_url,
                                    headers={"Authorization": f"Bearer {token}"},
                                    timeout=timeout, transport=transport)
@@ -90,10 +94,19 @@ class Lake:
             return Reply(False, error=f"{type(error).__name__}: {error}")
         return envelope(response)
 
-    def capability(self, capability: str, arguments: dict[str, Any], method: str) -> Reply:
-        """Call one customer-scoped lake capability through its audited registry route."""
+    def capability(self, capability: str, arguments: dict[str, Any], method: str,
+                   fixed: list[str] | None = None) -> Reply:
+        """Call one lake capability through its audited registry route, as this run's customer.
+
+        `fixed` names the fields the capability declares that the run fills itself (customer_id,
+        workspace_id); None means customer_id alone, as every App and build capability takes.
+        """
         path = f"/v1/{capability}"
-        scoped = {**arguments, "customer_id": self.customer_id}
+        values = {"customer_id": self.customer_id, "workspace_id": self.workspace_id}
+        scoped = dict(arguments)
+        for field in (["customer_id"] if fixed is None else fixed):
+            if values.get(field):
+                scoped[field] = values[field]
         try:
             if method == "get":
                 params = {

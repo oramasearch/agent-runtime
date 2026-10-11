@@ -6,8 +6,11 @@ Five sources, one list:
    table: the eval generator's first run failed on a hand-written parameter name). Only the
    capabilities the agent's **skills** grant survive; a skill not granted is a tool the agent
    never sees.
-2. **Lake App and build capabilities**, from lake's filtered OpenAPI. Reads call lake; granted
-   changes become exact proposals and never call the mutation route from this runtime.
+2. **Lake's own capabilities**, from Lake's OpenAPI: the App and build capabilities every agent
+   has, and those the agent's skills grant (skills.py: drives, transcripts, repositories,
+   datasets, streams, pipelines, usage, Lake-wide search, ...). A read calls Lake; a change becomes
+   an exact proposal for a person to confirm and never calls the mutation route from this runtime.
+   Nothing on skills.py's never-for-agents list is ever a tool.
 3. **Granted Pipelines** (lake#238): each approved Pipeline on the record becomes
    `pipeline_<name>`, which gates, runs and returns the run's report.
 4. **MCP connections** (lake#652): each `mcp:<prefix>` skill grants that connection's allowed
@@ -34,37 +37,19 @@ from typing import Any, Callable
 
 from agent_runtime.definition import Agent
 from agent_runtime.lake import Lake, Reply
+from agent_runtime.skills import (  # noqa: F401 (re-exported for existing callers)
+    SKILLS,
+    SOLUTION_ACTION_CAPABILITIES,
+    SOLUTION_READ_CAPABILITIES,
+    engine_grant,
+    lake_grant,
+    never_for_agents,
+)
 
-# Solution reads are useful to agents that inspect, train, summarize, or call a deployed API.
-# Mutations belong only to call-api, and lake's filtered OpenAPI must also grant each one.
-SOLUTION_READ_CAPABILITIES = frozenset({
-    "list_solutions",
-    "get_solution",
-    "get_policy",
-    "list_ledger",
-    "get_experiment",
-    "get_monitor",
-    "get_roi_readout",
-})
-SOLUTION_ACTION_CAPABILITIES = frozenset({
-    "decide",
-    "record_action",
-    "record_outcome",
-    "approve_decision",
-})
-
-# Studio's skills (orama-design studioAgents.js) and the workspace capabilities each grants.
+# The workspace engine capabilities each skill grants (engine names), kept under this name for the
+# code that reads it. The skills themselves, and the Lake capabilities they grant, are skills.py.
 SKILL_CAPABILITIES: dict[str, set[str]] = {
-    "search": {"list_datasets", "get_dataset", "list_connections", "list_source_tables",
-               "list_indexes", "get_index", "search"} | SOLUTION_READ_CAPABILITIES,
-    "generate-data": {"list_datasets", "list_dataset_generators", "generate_dataset"},
-    "train": {"list_datasets", "get_dataset", "list_projects", "get_project", "get_graph",
-              "list_runs", "get_run", "get_run_report", "list_models", "get_model", "gate",
-              "run"} | SOLUTION_READ_CAPABILITIES,
-    "summarize": {"list_projects", "get_project", "list_runs", "get_run", "get_run_report",
-                  "list_models", "get_model", "model_health"} | SOLUTION_READ_CAPABILITIES,
-    "call-api": {"list_models", "get_model", "score", "explain", "list_indexes", "search"}
-                | SOLUTION_READ_CAPABILITIES | SOLUTION_ACTION_CAPABILITIES,
+    name: set(skill.engine) for name, skill in SKILLS.items() if skill.engine
 }
 
 PIPELINE_DEADLINE_SECONDS = 600
@@ -96,10 +81,8 @@ class Tool:
 
 
 def granted_capabilities(skills: list[str]) -> set[str]:
-    granted: set[str] = set()
-    for skill in skills:
-        granted |= SKILL_CAPABILITIES.get(skill, set())
-    return granted
+    """The workspace engine capabilities the skills grant (skills.py)."""
+    return engine_grant(skills)
 
 
 def operation_parameters(method: str, operation: dict[str, Any]) -> dict[str, Any]:
@@ -124,18 +107,23 @@ def operation_parameters(method: str, operation: dict[str, Any]) -> dict[str, An
     return schema
 
 
+# The fields the run fixes itself: its customer, and the workspace it was launched in. The model
+# never sees them, so it cannot point a call at another account or workspace.
+FIXED_FIELDS = ("customer_id", "workspace_id")
+
+
 def customer_scoped(parameters: dict[str, Any]) -> dict[str, Any]:
-    """Remove customer_id because the launch credential already fixes the customer."""
+    """Remove customer_id and workspace_id: the launch credential already fixes both."""
     scoped = dict(parameters)
     scoped["properties"] = {
         name: schema
         for name, schema in (parameters.get("properties") or {}).items()
-        if name != "customer_id"
+        if name not in FIXED_FIELDS
     }
     required = [
         name
         for name in parameters.get("required") or []
-        if name != "customer_id"
+        if name not in FIXED_FIELDS
     ]
     if required:
         scoped["required"] = required
@@ -167,7 +155,7 @@ def workspace_tools(agent: Agent, lake: Lake, openapi: dict[str, Any]) -> list[T
         name = path.removeprefix("/v1/")
         if name not in granted:
             continue
-        for method, operation in operations.items():
+        for method, operation in one_operation(operations):
             parameters = operation_parameters(method, operation)
 
             def call(arguments: dict[str, Any], name: str = name, method: str = method) -> Reply:
@@ -181,43 +169,78 @@ def workspace_tools(agent: Agent, lake: Lake, openapi: dict[str, Any]) -> list[T
     return tools
 
 
-def lake_tools(lake: Lake, openapi: dict[str, Any]) -> list[Tool]:
-    """Granted lake App/build reads and proposal-only actions, derived from OpenAPI."""
+def one_operation(operations: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    """A capability's one operation: a read Lake also takes as POST (for large inputs) is GET."""
+    if "get" in operations:
+        return [("get", operations["get"])]
+    return list(operations.items())[:1]
+
+
+def is_read(operation: dict[str, Any]) -> bool:
+    """Whether a Lake operation only reads: its `x-lake-action`, Lake's own statement of what the
+    call does whatever the HTTP method (lake rest.cpp)."""
+    return operation.get("x-lake-action") == "read"
+
+
+def proposal_tool(name: str, description: str, parameters: dict[str, Any]) -> Tool:
+    """A change the agent may propose: the exact capability and input, never sent to lake."""
+
+    def propose(arguments: dict[str, Any], name: str = name) -> Reply:
+        return Reply(
+            True,
+            {
+                "status": "proposed",
+                "capability": name,
+                "input": arguments,
+                "message": "PROPOSED, NOT DONE. A person must confirm this in lake.",
+            },
+        )
+
+    return Tool(
+        name,
+        f"Propose this lake change for a person to confirm. {description}",
+        parameters,
+        propose,
+        proposal=True,
+        proposal_impact=description,
+    )
+
+
+def lake_tools(lake: Lake, openapi: dict[str, Any], agent: Agent | None = None) -> list[Tool]:
+    """Lake's own capabilities, derived from Lake's OpenAPI.
+
+    Every agent gets the App and build reads and may propose the App and build changes (apps.py).
+    The agent's skills add the Lake capabilities they grant (skills.py): a read is a tool that
+    calls Lake, anything else a proposal. Nothing on the never-for-agents list is ever a tool.
+    """
     from agent_runtime.apps import APP_ACTION_CAPABILITIES, APP_CAPABILITIES
 
+    granted = lake_grant(agent.skills) if agent is not None else set()
+    never = never_for_agents()
     derived: list[Tool] = []
     for path, operations in (openapi.get("paths") or {}).items():
         name = path.removeprefix("/v1/")
-        if name not in APP_CAPABILITIES:
+        app = name in APP_CAPABILITIES
+        if (not app and name not in granted) or name in never:
             continue
-        for method, operation in operations.items():
-            parameters = customer_scoped(operation_parameters(method, operation))
+        for method, operation in one_operation(operations):
+            declared = operation_parameters(method, operation)
+            fixed = [field for field in FIXED_FIELDS
+                     if field in (declared.get("properties") or {})]
+            parameters = customer_scoped(declared)
             description = operation.get("description") or operation.get("summary") or name
-            if name in APP_ACTION_CAPABILITIES:
-
-                def propose(arguments: dict[str, Any], name: str = name) -> Reply:
-                    return Reply(
-                        True,
-                        {
-                            "status": "proposed",
-                            "capability": name,
-                            "input": arguments,
-                            "message": "PROPOSED, NOT DONE. A person must confirm this in lake.",
-                        },
-                    )
-
-                derived.append(Tool(
-                    name,
-                    f"Propose this lake change for a person to confirm. {description}",
-                    parameters,
-                    propose,
-                    proposal=True,
-                    proposal_impact=description,
-                ))
+            change = name in APP_ACTION_CAPABILITIES if app else not is_read(operation)
+            if change:
+                derived.append(proposal_tool(name, description, parameters))
                 continue
 
-            def call(arguments: dict[str, Any], name: str = name, method: str = method) -> Reply:
-                return lake.capability(name, arguments, method)
+            def call(arguments: dict[str, Any], name: str = name, method: str = method,
+                     fixed: list[str] = fixed, app: bool = app) -> Reply:
+                if agent is not None and not app:
+                    refusal = confined(agent, arguments)
+                    if refusal:
+                        return Reply(False, error=refusal)
+                return lake.capability(name, arguments, method, fixed if not app else None)
 
             derived.append(Tool(name, description, parameters, call))
     return derived
@@ -309,8 +332,12 @@ def all_tools(agent: Agent, lake: Lake, openapi: dict[str, Any],
               lake_openapi: dict[str, Any] | None = None) -> list[Tool]:
     from agent_runtime.mcp import mcp_tools
 
-    tools = workspace_tools(agent, lake, openapi) + lake_tools(lake, lake_openapi or {}) \
-        + pipeline_tools(agent, lake) + mcp_tools(agent, lake) + definition_tools(agent)
+    engine = workspace_tools(agent, lake, openapi)
+    # A Lake capability with the same name as a granted engine one is the same job: the engine
+    # tool stays, so the five original skills behave as they did.
+    taken = {tool.name for tool in engine}
+    own = [tool for tool in lake_tools(lake, lake_openapi or {}, agent) if tool.name not in taken]
+    tools = engine + own + pipeline_tools(agent, lake) + mcp_tools(agent, lake) + definition_tools(agent)
     if agent.tool_allow_list is not None:
         allowed = set(agent.tool_allow_list)
         tools = [tool for tool in tools if tool.name in allowed]
