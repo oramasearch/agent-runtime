@@ -28,22 +28,7 @@
     "expose_index",
     "unexpose_index"
    ],
-   "engine": [
-    "get_dataset",
-    "get_experiment",
-    "get_index",
-    "get_monitor",
-    "get_policy",
-    "get_roi_readout",
-    "get_solution",
-    "list_connections",
-    "list_datasets",
-    "list_indexes",
-    "list_ledger",
-    "list_solutions",
-    "list_source_tables",
-    "search"
-   ]
+   "direct": []
   },
   {
    "name": "generate-data",
@@ -52,13 +37,9 @@
     "list_dataset_generators",
     "list_datasets"
    ],
-   "proposals": [
+   "proposals": [],
+   "direct": [
     "generate_dataset"
-   ],
-   "engine": [
-    "generate_dataset",
-    "list_dataset_generators",
-    "list_datasets"
    ]
   },
   {
@@ -72,8 +53,11 @@
     "get_experiment_analysis",
     "get_holdout_experiment",
     "get_job",
+    "get_methodology",
+    "get_methodology_run",
     "get_model",
     "get_monitor",
+    "get_pipeline",
     "get_policy",
     "get_project",
     "get_roi_readout",
@@ -87,6 +71,7 @@
     "list_jobs",
     "list_ledger",
     "list_methodologies",
+    "list_methodology_runs",
     "list_models",
     "list_projects",
     "list_runs",
@@ -100,26 +85,9 @@
     "stop_experiment",
     "stop_experiment_trial"
    ],
-   "engine": [
-    "gate",
-    "get_dataset",
-    "get_experiment",
-    "get_graph",
-    "get_model",
-    "get_monitor",
-    "get_policy",
-    "get_project",
-    "get_roi_readout",
-    "get_run",
-    "get_run_report",
-    "get_solution",
-    "list_datasets",
-    "list_ledger",
-    "list_models",
-    "list_projects",
-    "list_runs",
-    "list_solutions",
-    "run"
+   "direct": [
+    "check_pipeline",
+    "start_run"
    ]
   },
   {
@@ -149,23 +117,7 @@
     "workspace_status"
    ],
    "proposals": [],
-   "engine": [
-    "get_experiment",
-    "get_model",
-    "get_monitor",
-    "get_policy",
-    "get_project",
-    "get_roi_readout",
-    "get_run",
-    "get_run_report",
-    "get_solution",
-    "list_ledger",
-    "list_models",
-    "list_projects",
-    "list_runs",
-    "list_solutions",
-    "model_health"
-   ]
+   "direct": []
   },
   {
    "name": "call-api",
@@ -184,33 +136,17 @@
     "list_solutions",
     "predict",
     "resolve_model",
-    "score"
+    "score",
+    "search_workspace_index"
    ],
    "proposals": [
     "approve_decision",
-    "decide",
     "expose_model",
-    "record_outcome",
     "unexpose_model"
    ],
-   "engine": [
-    "approve_decision",
+   "direct": [
     "decide",
-    "explain",
-    "get_experiment",
-    "get_model",
-    "get_monitor",
-    "get_policy",
-    "get_roi_readout",
-    "get_solution",
-    "list_indexes",
-    "list_ledger",
-    "list_models",
-    "list_solutions",
-    "record_action",
-    "record_outcome",
-    "score",
-    "search"
+    "record_outcome"
    ]
   },
   {
@@ -250,7 +186,7 @@
     "upload_drive_entries",
     "upload_drive_files"
    ],
-   "engine": []
+   "direct": []
   },
   {
    "name": "transcripts",
@@ -265,7 +201,7 @@
     "transcribe",
     "update_transcript"
    ],
-   "engine": []
+   "direct": []
   },
   {
    "name": "repositories",
@@ -314,7 +250,7 @@
     "update_issue",
     "update_review"
    ],
-   "engine": []
+   "direct": []
   },
   {
    "name": "datasets",
@@ -337,7 +273,7 @@
     "promote_dataset",
     "upload_dataset"
    ],
-   "engine": []
+   "direct": []
   },
   {
    "name": "streams",
@@ -355,12 +291,15 @@
     "update_stream",
     "update_stream_message"
    ],
-   "engine": []
+   "direct": []
   },
   {
    "name": "pipelines",
    "label": "Design pipelines",
    "reads": [
+    "draft_methodology",
+    "get_methodology",
+    "get_methodology_run",
     "get_pipeline",
     "get_project",
     "get_run",
@@ -368,6 +307,7 @@
     "get_solution",
     "latest_agent_task",
     "list_methodologies",
+    "list_methodology_runs",
     "list_opportunities",
     "list_projects",
     "list_runs",
@@ -385,17 +325,20 @@
     "compile_python",
     "compose_solution",
     "confirm_solution",
+    "create_methodology",
     "create_pipeline",
     "create_project",
     "create_projects_from_opportunities",
     "create_solution",
     "delete_index",
+    "delete_methodology",
     "delete_model",
     "delete_project",
     "delete_run",
     "delete_solution",
     "deploy_pipeline",
     "dismiss_opportunity",
+    "duplicate_methodology",
     "duplicate_solution",
     "edit_pipeline",
     "import_n8n",
@@ -403,16 +346,20 @@
     "move_model_to_project",
     "register_model",
     "retrain_model",
+    "run_methodology",
     "run_pipeline",
     "run_solution",
     "save_pipeline",
     "start_run",
     "start_solution",
+    "stop_methodology_run",
     "train_model",
+    "update_methodology",
     "update_policy",
-    "update_solution"
+    "update_solution",
+    "validate_methodology"
    ],
-   "engine": []
+   "direct": []
   },
   {
    "name": "usage",
@@ -428,7 +375,7 @@
     "usage_over_time"
    ],
    "proposals": [],
-   "engine": []
+   "direct": []
   }
  ]
 }

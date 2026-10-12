@@ -135,18 +135,15 @@ def openapi_for(names: list[str], both_methods: tuple[str, ...] = ()) -> dict:
 
 
 class FakeLake:
-    def __init__(self, lake_openapi: dict, zetta_openapi: dict | None = None) -> None:
+    def __init__(self, lake_openapi: dict) -> None:
         self.requests: list[httpx.Request] = []
         self.lake_openapi = lake_openapi
-        self.zetta_openapi = zetta_openapi or {"openapi": "3.1.0", "paths": {}}
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         path = request.url.path
         if path == "/v1/openapi.json":
             return httpx.Response(200, json=self.lake_openapi)
-        if path == f"/workspaces/{CUSTOMER}/zetta/v1/openapi.json":
-            return httpx.Response(200, json=self.zetta_openapi)
         return httpx.Response(200, json={"ok": True, "value": {"path": path,
                                                                **dict(request.url.params)}})
 
@@ -172,18 +169,18 @@ def test_a_skill_grants_its_reads_as_tools_and_its_changes_as_proposals(tmp_path
     openapi = openapi_for(AREA_NAMES)
     lake = lake_for(FakeLake(openapi))
 
-    none = tools.all_tools(agent_with([], tmp_path / "none"), lake, {"paths": {}}, openapi)
+    none = tools.all_tools(agent_with([], tmp_path / "none"), lake, openapi)
     assert {tool.name for tool in none} == set()
 
     drives = {tool.name: tool for tool in tools.all_tools(
-        agent_with(["drives"], tmp_path / "drives"), lake, {"paths": {}}, openapi)}
+        agent_with(["drives"], tmp_path / "drives"), lake, openapi)}
     assert set(drives) == {"drive_browse", "read_drive_file", "upload_drive_files"}
     assert not drives["drive_browse"].proposal and not drives["read_drive_file"].proposal
     assert drives["upload_drive_files"].proposal
     assert drives["upload_drive_files"].description.startswith("Propose this lake change")
 
     everything = tools.all_tools(agent_with(list(SKILLS), tmp_path / "all"), lake,
-                                 {"paths": {}}, openapi)
+                                 openapi)
     names = {tool.name for tool in everything}
     assert "read_secret" not in names and "create_token" not in names
     assert {"list_transcripts", "create_transcript", "browse_stream", "publish_stream_message",
@@ -194,7 +191,7 @@ def test_a_read_calls_lake_as_the_runs_customer_and_workspace(tmp_path):
     openapi = openapi_for(["browse_stream", "drive_browse"])
     fake = FakeLake(openapi)
     by_name = {tool.name: tool for tool in tools.all_tools(
-        agent_with(["streams", "drives"], tmp_path), lake_for(fake), {"paths": {}}, openapi)}
+        agent_with(["streams", "drives"], tmp_path), lake_for(fake), openapi)}
 
     for name in ["browse_stream", "drive_browse"]:
         properties = by_name[name].parameters["properties"]
@@ -218,7 +215,7 @@ def test_a_read_calls_lake_as_the_runs_customer_and_workspace(tmp_path):
 def test_a_read_lake_takes_on_get_and_post_is_one_tool(tmp_path):
     openapi = openapi_for(["list_streams"], both_methods=("list_streams",))
     derived = tools.all_tools(agent_with(["streams"], tmp_path), lake_for(FakeLake(openapi)),
-                              {"paths": {}}, openapi)
+                              openapi)
     assert [tool.name for tool in derived] == ["list_streams"]
 
 
@@ -226,7 +223,7 @@ def test_a_skills_changes_are_proposals_that_never_reach_lake(tmp_path):
     openapi = openapi_for(["create_pipeline", "get_project"])
     fake = FakeLake(openapi)
     agent = agent_with(["pipelines"], tmp_path)
-    derived = tools.all_tools(agent, lake_for(fake), {"paths": {}}, openapi)
+    derived = tools.all_tools(agent, lake_for(fake), openapi)
     call = SimpleNamespace(id="c-1", function=SimpleNamespace(
         name="create_pipeline", arguments=json.dumps({"project": "churn", "from": "n8n"})))
     replies = iter([
@@ -257,27 +254,128 @@ def test_the_work_area_narrows_lake_reads(tmp_path):
     agent = agent_with(["pipelines"], tmp_path,
                        work_area={"kind": "project", "detail": "churn"})
     tool = {tool.name: tool for tool in tools.all_tools(
-        agent, lake_for(fake), {"paths": {}}, openapi)}["get_project"]
+        agent, lake_for(fake), openapi)}["get_project"]
 
     refused = tool.call({"project": "pricing"})
     assert not refused.ok and "only in project 'churn'" in refused.error
     assert tool.call({"project": "churn"}).ok
 
 
-def test_an_engine_tool_keeps_its_name_over_the_same_lake_capability(tmp_path):
-    lake_openapi = openapi_for(["list_projects", "get_pipeline"])
-    zetta_openapi = {"openapi": "3.1.0", "paths": {
-        "/v1/list_projects": {"get": {"description": "engine list_projects", "parameters": []}}}}
-    fake = FakeLake(lake_openapi, zetta_openapi)
-    derived = tools.all_tools(agent_with(["train", "pipelines"], tmp_path), lake_for(fake),
-                              zetta_openapi, lake_openapi)
-    names = [tool.name for tool in derived]
-    assert names.count("list_projects") == 1
-    assert "get_pipeline" in names
+# -- the five original skills, under Lake's names (agent-runtime#11) ------------------------------
 
-    {tool.name: tool for tool in derived}["list_projects"].call({})
-    engine_path = f"/w/{WORKSPACE}/workspaces/{CUSTOMER}/zetta/v1/list_projects"
-    assert fake.requests[-1].url.path == engine_path
+ORIGINAL_FIVE = ["search", "generate-data", "train", "summarize", "call-api"]
+
+# What each original skill reached on the workspace engine under the engine's name, and the Lake
+# capability that does the same job (lake#674, lake docs/api/engine-capabilities.md).
+ENGINE_TO_LAKE = {
+    "search": "search_workspace_index", "get_graph": "get_pipeline", "gate": "check_pipeline",
+    "run": "start_run", "get_experiment": "get_holdout_experiment",
+}
+ENGINE_GRANTS_BEFORE = {
+    "search": {"list_datasets", "get_dataset", "list_connections", "list_source_tables",
+               "list_indexes", "get_index", "search"},
+    "generate-data": {"list_datasets", "list_dataset_generators", "generate_dataset"},
+    "train": {"list_datasets", "get_dataset", "list_projects", "get_project", "get_graph",
+              "list_runs", "get_run", "get_run_report", "list_models", "get_model", "gate", "run"},
+    "summarize": {"list_projects", "get_project", "list_runs", "get_run", "get_run_report",
+                  "list_models", "get_model", "model_health"},
+    "call-api": {"list_models", "get_model", "score", "explain", "list_indexes", "search",
+                 "decide", "record_outcome", "approve_decision"},
+}
+ENGINE_SOLUTION_READS = {"list_solutions", "get_solution", "get_policy", "list_ledger",
+                         "get_experiment", "get_monitor", "get_roi_readout"}
+
+
+def test_no_skill_has_an_engine_grant_and_no_tool_reads_the_workspace_zetta_route():
+    for skill in SKILLS.values():
+        assert not hasattr(skill, "engine"), skill.name
+    assert not hasattr(tools, "workspace_tools")
+    assert not hasattr(Lake, "zetta") and not hasattr(Lake, "zetta_openapi")
+    source = "\n".join(path.read_text() for path in (ROOT / "src").rglob("*.py"))
+    assert "/zetta/v1" not in source.replace("``/workspaces/<customer>/zetta/v1/``", "")
+
+
+@pytest.mark.parametrize("skill", ORIGINAL_FIVE)
+def test_the_original_five_still_reach_what_they_reached_under_lakes_names(skill):
+    before = ENGINE_GRANTS_BEFORE[skill]
+    if skill != "generate-data":
+        before = before | ENGINE_SOLUTION_READS
+    for engine_name in before:
+        lake_name = ENGINE_TO_LAKE.get(engine_name, engine_name)
+        assert lake_name in SKILLS[skill].lake, f"{skill}: {engine_name} -> {lake_name}"
+        assert lake_name in CAPABILITIES, lake_name
+
+
+def test_direct_actions_are_lake_changes_their_skill_grants():
+    direct = {name for skill in SKILLS.values() for name in skill.direct}
+    assert direct == {"check_pipeline", "start_run", "generate_dataset", "decide",
+                      "record_outcome"}
+    for skill in SKILLS.values():
+        assert skill.direct <= skill.lake, skill.name
+        for name in skill.direct:
+            assert name in CAPABILITIES, name
+            assert CAPABILITIES[name]["action"] != "read", f"{name} is a read, not an action"
+            assert name not in never_for_agents(), name
+    # A1 approval is a person's: an agent may only propose it.
+    assert "approve_decision" in SKILLS["call-api"].lake
+    assert "approve_decision" not in SKILLS["call-api"].direct
+
+
+def test_a_train_agent_reaches_lakes_get_experiment_and_the_holdout_one(tmp_path):
+    lake_openapi = openapi_for(["get_experiment", "get_holdout_experiment", "list_projects"])
+    fake = FakeLake(lake_openapi)
+    derived = {tool.name: tool for tool in tools.all_tools(
+        agent_with(["train"], tmp_path), lake_for(fake), lake_openapi)}
+    assert {"get_experiment", "get_holdout_experiment", "list_projects"} <= set(derived)
+
+    derived["get_experiment"].call({"id": "exp-1"})
+    sent = fake.requests[-1]
+    assert sent.url.path == f"/w/{WORKSPACE}/v1/get_experiment"
+    derived["list_projects"].call({})
+    assert fake.requests[-1].url.path == f"/w/{WORKSPACE}/v1/list_projects"
+    assert not any("/zetta/" in request.url.path for request in fake.requests)
+
+
+def test_a_direct_action_calls_lake_and_any_other_change_is_a_proposal(tmp_path):
+    names = ["start_run", "check_pipeline", "start_experiment", "decide", "approve_decision"]
+    lake_openapi = openapi_for(names)
+    fake = FakeLake(lake_openapi)
+    derived = {tool.name: tool for tool in tools.all_tools(
+        agent_with(["train", "call-api"], tmp_path), lake_for(fake), lake_openapi)}
+
+    assert not derived["start_run"].proposal and not derived["check_pipeline"].proposal
+    assert not derived["decide"].proposal
+    assert derived["start_experiment"].proposal and derived["approve_decision"].proposal
+
+    started = derived["start_run"].call({"project": "churn", "graph": "weekly"})
+    assert started.ok
+    sent = fake.requests[-1]
+    assert sent.method == "POST" and sent.url.path == f"/w/{WORKSPACE}/v1/start_run"
+    body = json.loads(sent.content)
+    assert body["customer_id"] == CUSTOMER and body["workspace_id"] == WORKSPACE
+
+    count = len(fake.requests)
+    proposed = derived["approve_decision"].call({"decision_id": "d-1"})
+    assert proposed.value["status"] == "proposed" and len(fake.requests) == count
+
+
+def test_a_direct_action_is_a_proposal_for_a_skill_that_does_not_grant_it_directly(tmp_path):
+    lake_openapi = openapi_for(["start_run", "check_pipeline"])
+    derived = {tool.name: tool for tool in tools.all_tools(
+        agent_with(["pipelines"], tmp_path), lake_for(FakeLake(lake_openapi)), lake_openapi)}
+    assert derived["start_run"].proposal and derived["check_pipeline"].proposal
+
+
+def test_the_work_area_reads_lakes_dataset_id(tmp_path):
+    lake_openapi = openapi_for(["get_dataset"])
+    fake = FakeLake(lake_openapi)
+    agent = agent_with(["search"], tmp_path, work_area={"kind": "dataset", "detail": "accounts"})
+    tool = {tool.name: tool for tool in tools.all_tools(
+        agent, lake_for(fake), lake_openapi)}["get_dataset"]
+    refused = tool.call({"id": "main/payroll"})
+    assert not refused.ok and "only on accounts" in refused.error
+    assert not fake.requests
+    assert tool.call({"id": "main/accounts"}).ok
 
 
 def test_the_skills_lake_offers_are_the_skills_here():

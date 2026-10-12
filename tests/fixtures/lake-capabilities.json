@@ -927,6 +927,22 @@
    ],
    "method": "post"
   },
+  "create_methodology": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "description",
+    "files",
+    "name",
+    "network",
+    "path",
+    "repository_id",
+    "revision",
+    "target_kind",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "create_object": {
    "action": "admin",
    "inputs": [
@@ -1334,6 +1350,15 @@
    ],
    "method": "post"
   },
+  "delete_methodology": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "delete_model": {
    "action": "write",
    "inputs": [
@@ -1570,6 +1595,17 @@
    ],
    "method": "get"
   },
+  "draft_methodology": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "description",
+    "name",
+    "target_kind",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
   "drive_browse": {
    "action": "read",
    "inputs": [
@@ -1639,6 +1675,16 @@
    "action": "read",
    "inputs": [],
    "method": "get"
+  },
+  "duplicate_methodology": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "id",
+    "name",
+    "workspace_id"
+   ],
+   "method": "post"
   },
   "duplicate_solution": {
    "action": "write",
@@ -2055,6 +2101,25 @@
    "action": "read",
    "inputs": [
     "id"
+   ],
+   "method": "get"
+  },
+  "get_methodology": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "id",
+    "include_source",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
+  "get_methodology_run": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "run_id",
+    "workspace_id"
    ],
    "method": "get"
   },
@@ -2822,6 +2887,16 @@
    ],
    "method": "get"
   },
+  "list_methodology_runs": {
+   "action": "read",
+   "inputs": [
+    "customer_id",
+    "limit",
+    "methodology_id",
+    "workspace_id"
+   ],
+   "method": "get"
+  },
   "list_models": {
    "action": "read",
    "inputs": [
@@ -3140,6 +3215,25 @@
     "to"
    ],
    "method": "get"
+  },
+  "methodology_run_input": {
+   "action": "read",
+   "inputs": [
+    "limit",
+    "offset",
+    "run_id"
+   ],
+   "method": "get"
+  },
+  "methodology_run_output": {
+   "action": "write",
+   "inputs": [
+    "artifact_base64",
+    "log",
+    "result",
+    "run_id"
+   ],
+   "method": "post"
   },
   "mint_agent_session_key": {
    "action": "write",
@@ -4019,6 +4113,22 @@
    ],
    "method": "post"
   },
+  "run_methodology": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset",
+    "features",
+    "graph",
+    "holdout_fraction",
+    "id",
+    "params",
+    "project",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "run_pipeline": {
    "action": "write",
    "inputs": [
@@ -4721,6 +4831,15 @@
    ],
    "method": "post"
   },
+  "stop_methodology_run": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "run_id",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "store_connection": {
    "action": "admin",
    "inputs": [
@@ -5040,6 +5159,21 @@
    ],
    "method": "post"
   },
+  "update_methodology": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "description",
+    "files",
+    "id",
+    "message",
+    "name",
+    "network",
+    "revision",
+    "workspace_id"
+   ],
+   "method": "post"
+  },
   "update_policy": {
    "action": "write",
    "inputs": [
@@ -5229,6 +5363,18 @@
     "workspace_id"
    ],
    "method": "get"
+  },
+  "validate_methodology": {
+   "action": "write",
+   "inputs": [
+    "customer_id",
+    "dataset",
+    "features",
+    "id",
+    "target",
+    "workspace_id"
+   ],
+   "method": "post"
   },
   "verify": {
    "action": "write",

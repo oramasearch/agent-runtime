@@ -1,5 +1,6 @@
-"""agent-runtime without a network: lake is an httpx MockTransport answering the way lake and
-Zetta do, the model a scripted client. The live run is the deploy's proof (lake#228)."""
+"""agent-runtime without a network: lake is an httpx MockTransport answering the way Lake does
+(its named capabilities, the workspace engine's included, lake#674), the model a scripted client.
+The live run is the deploy's proof (lake#228)."""
 
 from __future__ import annotations
 
@@ -15,40 +16,49 @@ from agent_runtime.lake import Lake, LoadError, Reply
 from agent_runtime.loop import run_loop, system_message
 
 CUSTOMER = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"
+WORKSPACE_FIELDS = [
+    {"name": "customer_id", "in": "query", "required": True, "schema": {"type": "string"}},
+    {"name": "workspace_id", "in": "query", "required": True, "schema": {"type": "string"}},
+]
+
+
+def lake_read(name: str, *fields: str, required: tuple[str, ...] = ()) -> dict:
+    """One Lake read as Lake's OpenAPI describes it."""
+    return {"get": {"description": name, "x-lake-action": "read", "parameters": [
+        *WORKSPACE_FIELDS,
+        *({"name": field, "in": "query", "required": field in required,
+           "schema": {"type": "string"}} for field in fields)]}}
+
+
+def lake_action(name: str, *fields: str) -> dict:
+    """One Lake action (a change) as Lake's OpenAPI describes it."""
+    return {"post": {"description": name, "x-lake-action": "write", "requestBody": {"content": {
+        "application/json": {"schema": {"type": "object", "properties": {
+            "customer_id": {"type": "string"}, "workspace_id": {"type": "string"},
+            **{field: {"type": "string"} for field in fields}},
+            "required": ["customer_id", "workspace_id"]}}}}}}
+
+
 OPENAPI = {"openapi": "3.1.0", "paths": {
-    "/v1/list_datasets": {"get": {"description": "list datasets", "parameters": []}},
-    "/v1/get_dataset": {"get": {"description": "one dataset", "parameters": [
-        {"name": "dataset", "in": "query", "required": True, "schema": {"type": "string"}}]}},
-    "/v1/gate": {"post": {"description": "gate", "requestBody": {"content": {"application/json": {
-        "schema": {"type": "object", "properties": {"project": {"type": "string"}}}}}}}},
-    "/v1/create_project": {"post": {"description": "create", "requestBody": {}}},
+    "/v1/list_datasets": lake_read("list datasets"),
+    "/v1/get_dataset": lake_read("one dataset", "id", required=("id",)),
+    "/v1/check_pipeline": lake_action("check_pipeline", "project", "graph"),
+    "/v1/create_project": lake_action("create", "name"),
 }}
 SOLUTION_READS = {
     "list_solutions",
     "get_solution",
     "get_policy",
     "list_ledger",
-    "get_experiment",
+    "get_holdout_experiment",
     "get_monitor",
     "get_roi_readout",
 }
-SOLUTION_ACTIONS = {
-    "decide",
-    "record_action",
-    "record_outcome",
-    "approve_decision",
-}
+SOLUTION_DIRECT = {"decide", "record_outcome"}
+SOLUTION_ACTIONS = SOLUTION_DIRECT | {"approve_decision"}
 SOLUTION_OPENAPI = {"openapi": "3.1.0", "paths": {
-    **{
-        f"/v1/{name}": {"get": {"description": name, "parameters": []}}
-        for name in SOLUTION_READS
-    },
-    **{
-        f"/v1/{name}": {"post": {"description": name, "requestBody": {"content": {
-            "application/json": {"schema": {"type": "object", "properties": {}}}
-        }}}}
-        for name in SOLUTION_ACTIONS
-    },
+    **{f"/v1/{name}": lake_read(name, "id") for name in SOLUTION_READS},
+    **{f"/v1/{name}": lake_action(name, "entity", "action_id") for name in SOLUTION_ACTIONS},
 }}
 APP_OPENAPI = {"openapi": "3.1.0", "paths": {
     **{
@@ -103,21 +113,20 @@ class FakeLake:
         self.requests.append(request)
         path = request.url.path
         ok = lambda value: httpx.Response(200, json={"ok": True, "value": value})  # noqa: E731
-        base = f"/workspaces/{CUSTOMER}/zetta/v1/"
-        if path == base + "openapi.json":
+        if path == "/v1/openapi.json":
             return httpx.Response(200, json=OPENAPI)
-        if path == base + "list_datasets":
+        if path == "/v1/list_datasets":
             return ok({"datasets": [{"name": "accounts"}]})
-        if path == base + "gate":
+        if path == "/v1/check_pipeline":
             return ok({"block_deploy": False, "checks": []})
-        if path == base + "run":
+        if path == "/v1/start_run":
             self.runs += 1
             return ok({"run_id": "r-1"})
-        if path == base + "get_run":
+        if path == "/v1/get_run":
             return ok({"status": "succeeded"})
-        if path == base + "get_run_report":
+        if path == "/v1/get_run_report":
             return ok({"at_risk": ["acme"]})
-        if path == base + "get_agent":
+        if path == "/v1/get_agent":
             return ok(record())
         if path == "/v1/repository_tree":
             return ok({"items": [{"path": item["path"], "kind": "file"} for item in FILES]})
@@ -133,30 +142,36 @@ def lake_with(fake: FakeLake) -> Lake:
 
 
 class FakeSolutions:
-    """A changing solution registry plus an engine-enforced holdout."""
+    """A changing solution registry, as Lake's list_solutions and get_solution answer it, plus
+    the engine's holdout rule."""
 
-    def __init__(self, old_engine: bool = False) -> None:
+    def __init__(self, old_engine: bool = False, no_catalogue: bool = False) -> None:
         self.requests: list[httpx.Request] = []
         self.generation = 0
         self.old_engine = old_engine
+        self.no_catalogue = no_catalogue
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         path = request.url.path
-        base = f"/workspaces/{CUSTOMER}/zetta/v1/"
-        if path == base + "openapi.json":
+        if path == "/v1/openapi.json":
             return httpx.Response(200, json=SOLUTION_OPENAPI)
-        if path == base + "list_solutions":
+        if path == "/v1/list_solutions":
             if self.old_engine:
                 return failed("unknown_capability", "list_solutions")
+            if self.no_catalogue:
+                return succeeded({"solutions": [{"id": "own-1", "source": "workspace"}],
+                                  "catalogue": {"available": False, "message":
+                                                "this workspace's engine does not list Orama's "
+                                                "solutions yet"}})
             self.generation += 1
             return succeeded({"solutions": [
                 {"id": "S-1", "runnable": True},
                 {"id": "S-2", "runnable": False, "missing": ["monitor"]},
                 {"id": "B-1", "runnable": False, "status": "sketch"},
-            ]})
-        if path == base + "get_solution":
-            identifier = request.url.params["solution"]
+            ], "catalogue": {"available": True}})
+        if path == "/v1/get_solution":
+            identifier = request.url.params["id"]
             return succeeded({
                 "solution": {
                     "id": identifier,
@@ -166,9 +181,9 @@ class FakeSolutions:
                     "missing": ["monitor"] if identifier == "S-2" else [],
                 },
             })
-        if path == base + "decide":
+        if path == "/v1/decide":
             return succeeded({"decision_id": "d-1", "holdout": True, "actionable": False})
-        if path == base + "record_action":
+        if path == "/v1/record_outcome":
             return failed("holdout", "holdout decisions cannot be acted on")
         return succeeded({"accepted": True})
 
@@ -185,8 +200,6 @@ class FakeApps:
         path = request.url.path
         if path == "/v1/openapi.json":
             return httpx.Response(200, json=self.openapi)
-        if path == f"/workspaces/{CUSTOMER}/zetta/v1/openapi.json":
-            return httpx.Response(200, json={"openapi": "3.1.0", "paths": {}})
         if path == "/v1/list_apps":
             return succeeded({"apps": [{"id": "app-1", "phase": "Running"}]})
         if path == "/v1/receive_build_events":
@@ -237,12 +250,12 @@ def test_skills_decide_the_workspace_tools_and_the_work_area_narrows_them(tmp_pa
     agent = definition.from_record(
         record(work_area={"kind": "dataset", "detail": "accounts"},
                definition={"source": "zetta", "files": []}), workdir=tmp_path)
-    derived = tools.workspace_tools(agent, lake_with(fake), OPENAPI)
+    derived = tools.lake_tools(lake_with(fake), OPENAPI, agent)
     names = {tool.name for tool in derived}
     assert names == {"list_datasets", "get_dataset"}, "search grants reads, never gate or create"
     get_dataset = next(tool for tool in derived if tool.name == "get_dataset")
-    assert get_dataset.parameters["required"] == ["dataset"], "derived from the OpenAPI"
-    refused = get_dataset.call({"dataset": "payroll"})
+    assert get_dataset.parameters["required"] == ["id"], "derived from the OpenAPI"
+    refused = get_dataset.call({"id": "main/payroll"})
     assert not refused.ok and "only on accounts" in refused.error
     assert not fake.requests, "a refused call never reaches lake"
 
@@ -255,7 +268,7 @@ def test_solution_tools_require_both_the_skill_and_the_filtered_openapi(tmp_path
     )
     search_names = {
         tool.name
-        for tool in tools.workspace_tools(search_agent, lake_with(fake), SOLUTION_OPENAPI)
+        for tool in tools.lake_tools(lake_with(fake), SOLUTION_OPENAPI, search_agent)
     }
     assert search_names == SOLUTION_READS
 
@@ -271,11 +284,19 @@ def test_solution_tools_require_both_the_skill_and_the_filtered_openapi(tmp_path
             if path != "/v1/approve_decision"
         },
     }
-    action_names = {
-        tool.name
-        for tool in tools.workspace_tools(action_agent, lake_with(fake), filtered_openapi)
+    action_tools = {
+        tool.name: tool
+        for tool in tools.lake_tools(lake_with(fake), filtered_openapi, action_agent)
     }
-    assert action_names == SOLUTION_READS | (SOLUTION_ACTIONS - {"approve_decision"})
+    assert set(action_tools) == SOLUTION_READS | SOLUTION_DIRECT
+    assert not any(tool.proposal for tool in action_tools.values())
+
+    # A1 approval is a person's: with Lake publishing it, the agent may only propose it.
+    approve = {tool.name: tool for tool in tools.lake_tools(
+        lake_with(fake), SOLUTION_OPENAPI, action_agent)}["approve_decision"]
+    assert approve.proposal
+    assert approve.call({"decision_id": "d-1"}).value["status"] == "proposed"
+    assert not any(request.url.path == "/v1/approve_decision" for request in fake.requests)
 
 
 def test_each_turn_reads_the_current_solution_registry_and_full_entries(tmp_path):
@@ -287,7 +308,7 @@ def test_each_turn_reads_the_current_solution_registry_and_full_entries(tmp_path
     )
     loaded = runner.Loaded(
         agent,
-        tools.workspace_tools(agent, lake, SOLUTION_OPENAPI),
+        tools.lake_tools(lake, SOLUTION_OPENAPI, agent),
         "gpt-5.5",
         lake,
     )
@@ -324,7 +345,7 @@ def test_an_old_engine_has_no_solution_catalogue_and_says_not_deployed(tmp_path)
         record(skills=["search"], definition={"source": "zetta", "files": []}),
         workdir=tmp_path,
     )
-    derived = tools.workspace_tools(agent, lake, SOLUTION_OPENAPI)
+    derived = tools.lake_tools(lake, SOLUTION_OPENAPI, agent)
     catalog = solutions.read_solution_catalog(derived)
 
     assert not catalog.available
@@ -336,6 +357,21 @@ def test_an_old_engine_has_no_solution_catalogue_and_says_not_deployed(tmp_path)
     assert "not deployed yet" in list_tool.call({}).observation()
 
 
+def test_a_workspace_without_oramas_catalogue_still_lists_its_own(tmp_path):
+    fake = FakeSolutions(no_catalogue=True)
+    agent = definition.from_record(
+        record(skills=["search"], definition={"source": "zetta", "files": []}),
+        workdir=tmp_path,
+    )
+    catalog = solutions.read_solution_catalog(
+        tools.lake_tools(lake_with(fake), SOLUTION_OPENAPI, agent))
+
+    assert catalog.available and catalog.not_deployed
+    assert [entry["id"] for entry in catalog.solutions] == ["own-1"]
+    assert "does not list Orama's solutions yet" in catalog.reason
+    assert "not deployed in this workspace's engine yet" in catalog.message()["content"]
+
+
 def test_a_holdout_refusal_from_the_engine_is_the_action_observation(tmp_path):
     fake = FakeSolutions()
     lake = lake_with(fake)
@@ -345,20 +381,22 @@ def test_a_holdout_refusal_from_the_engine_is_the_action_observation(tmp_path):
     )
     derived = {
         tool.name: tool
-        for tool in tools.workspace_tools(agent, lake, SOLUTION_OPENAPI)
+        for tool in tools.lake_tools(lake, SOLUTION_OPENAPI, agent)
     }
 
     decision = derived["decide"].call({"entity": "held-account"})
-    refused = derived["record_action"].call({"decision_id": decision.value["decision_id"]})
+    refused = derived["record_outcome"].call({"action_id": decision.value["decision_id"]})
 
     assert decision.value == {"decision_id": "d-1", "holdout": True, "actionable": False}
     assert not refused.ok
     assert refused.code == "holdout"
     assert "holdout decisions cannot be acted on" in refused.observation()
-    assert [request.url.path.rsplit("/", 1)[-1] for request in fake.requests] == [
-        "decide",
-        "record_action",
+    assert [request.url.path for request in fake.requests] == [
+        "/v1/decide",
+        "/v1/record_outcome",
     ]
+    sent = json.loads(fake.requests[0].content)
+    assert sent["customer_id"] == CUSTOMER and sent["entity"] == "held-account"
 
 
 def test_app_reads_are_always_tools_and_actions_require_the_filtered_openapi(tmp_path):
@@ -368,7 +406,7 @@ def test_app_reads_are_always_tools_and_actions_require_the_filtered_openapi(tmp
         record(skills=[], definition={"source": "zetta", "files": []}),
         workdir=tmp_path,
     )
-    derived = tools.all_tools(agent, lake, {"paths": {}}, APP_OPENAPI)
+    derived = tools.all_tools(agent, lake, APP_OPENAPI)
     by_name = {tool.name: tool for tool in derived}
 
     assert set(by_name) == apps.APP_CAPABILITIES
@@ -497,6 +535,11 @@ def test_a_granted_pipeline_gates_runs_and_returns_its_report(tmp_path):
     answer = tool.call({"dataset": "datasets.accounts"})
     assert answer.ok and answer.value["report"] == {"at_risk": ["acme"]}
     assert fake.runs == 1
+    assert [request.url.path for request in fake.requests] == [
+        "/v1/check_pipeline", "/v1/start_run", "/v1/get_run", "/v1/get_run_report"]
+    started = json.loads(fake.requests[1].content)
+    assert started == {"project": "churn", "graph": "weekly", "dataset": "datasets.accounts",
+                       "customer_id": CUSTOMER}
 
 
 def test_a_blocked_gate_runs_nothing(tmp_path):
@@ -505,9 +548,9 @@ def test_a_blocked_gate_runs_nothing(tmp_path):
         record(pipelines=[{"project": "churn", "graph": "weekly"}],
                definition={"source": "zetta", "files": []}), workdir=tmp_path)
     lake = lake_with(fake)
-    lake.zetta = lambda name, arguments, method: (  # type: ignore[method-assign]
+    lake.capability = lambda name, arguments, method, fixed=None: (  # type: ignore[method-assign]
         Reply(True, {"block_deploy": True, "checks": [{"name": "leakage", "passed": False}]})
-        if name == "gate" else Reply(True, {"run_id": "never"}))
+        if name == "check_pipeline" else Reply(True, {"run_id": "never"}))
     [tool] = tools.pipeline_tools(agent, lake, sleep=lambda _: None)
     blocked = tool.call({})
     assert not blocked.ok and "leakage" in blocked.error
@@ -539,7 +582,7 @@ def test_the_loop_answers_tool_calls_with_what_came_back(tmp_path):
     fake = FakeLake()
     agent = definition.from_record(record(definition={"source": "zetta", "files": []}),
                                    workdir=tmp_path)
-    derived = tools.workspace_tools(agent, lake_with(fake), OPENAPI)
+    derived = tools.lake_tools(lake_with(fake), OPENAPI, agent)
     call = SimpleNamespace(id="c-1", function=SimpleNamespace(name="list_datasets",
                                                               arguments="{}"))
     ghost = SimpleNamespace(id="c-2", function=SimpleNamespace(name="drop_everything",
