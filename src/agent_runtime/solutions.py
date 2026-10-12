@@ -1,4 +1,9 @@
-"""The solution catalogue observed through an agent's granted tools for one turn."""
+"""The solution catalogue observed through an agent's granted tools for one turn.
+
+Lake's `list_solutions` answers Orama's catalogue (the engine's, read-only) and the workspace's own,
+with `catalogue: {available, message}` saying whether the engine could list Orama's; `get_solution`
+takes the solution's `id` (lake `docs/api/solutions.md`).
+"""
 
 from __future__ import annotations
 
@@ -31,7 +36,15 @@ class SolutionCatalog:
         }
 
     def message(self) -> dict[str, str]:
-        if self.available:
+        if self.available and self.not_deployed:
+            guidance = (
+                "This was read from list_solutions and get_solution for this turn. Orama's "
+                "solution catalogue is not deployed in this workspace's engine yet ("
+                + (self.reason or "no reason given") + "); only the workspace's own solutions "
+                "are listed. Do not invent catalogue entries. Never promise ROI figures, pricing, "
+                "or odds of success."
+            )
+        elif self.available:
             guidance = (
                 "This was read from list_solutions and get_solution for this turn. Treat it as "
                 "authoritative. Report runnable and missing fields honestly. Never promise ROI "
@@ -79,6 +92,10 @@ def read_solution_catalog(tools: list[Tool]) -> SolutionCatalog:
     if not isinstance(entries, list):
         catalog.reason = "list_solutions did not return a solutions list"
         return catalog
+    catalogue = value.get("catalogue")
+    if isinstance(catalogue, dict) and catalogue.get("available") is False:
+        catalog.not_deployed = True
+        catalog.reason = str(catalogue.get("message") or "Orama's catalogue is not deployed yet")
 
     details: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -89,7 +106,7 @@ def read_solution_catalog(tools: list[Tool]) -> SolutionCatalog:
         if not isinstance(identifier, str) or not identifier or identifier in seen:
             continue
         seen.add(identifier)
-        arguments = {"solution": identifier}
+        arguments = {"id": identifier}
         reply = get_tool.call(arguments)
         catalog.calls.append(call_record("get_solution", arguments, reply))
         if reply.ok and isinstance(reply.value, dict):

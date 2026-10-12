@@ -39,43 +39,44 @@ module is not in the definition, a path outside the definition, an agent that is
 
 ## Its tools
 
-1. **The workspace's Zetta capabilities**, derived from lake's filtered OpenAPI
-   (`/workspaces/<customer>/zetta/v1/openapi.json`, lake#235) and kept only where the agent's
-   **skills** grant them (the `engine` names in `skills.py`): *search*, *generate-data*, *train*,
-   *summarize*, *call-api*.
-2. **Lake's own capabilities**, derived from Lake's OpenAPI (`/v1/openapi.json`):
+1. **Lake's capabilities**, derived from Lake's OpenAPI (`/v1/openapi.json`), the workspace
+   engine's included under their Lake names (lake#674: `check_pipeline` for the engine's `gate`,
+   `start_run` for `run`, `get_pipeline` for `get_graph`, `search_workspace_index` for `search`,
+   `get_holdout_experiment` for the solution `get_experiment`):
    - **Apps and builds** for every agent. It may read Apps, logs, builds, and their retained event
      streams; create, deploy, rollback, lifecycle, scale, binding, and build operations are
      proposal-only tools. See [`docs/apps/README.md`](docs/apps/README.md).
-   - **What its skills grant** (the `lake` names in `skills.py`, agent-runtime#7). A capability
+   - **What its skills grant** (`skills.py`, agent-runtime#7, agent-runtime#11). A capability
      whose `x-lake-action` is `read` is a tool that calls Lake; any other is a **proposal**: the
      exact capability and input are returned for a person to confirm in Lake and are never sent by
-     this runtime. See [`docs/skills/README.md`](docs/skills/README.md).
-3. **Granted Pipelines** (lake#238): each becomes `pipeline_<graph>`, which checks the correctness
-   gate (a blocked gate runs nothing and names the failing checks), runs it, waits up to ten minutes
-   and returns the run's report.
-4. **MCP connections** (lake#652): each `mcp:<prefix>` skill grants the allowed tools of one of
+     this runtime. The exception is a skill's **direct** engine actions (`check_pipeline`,
+     `start_run`, `generate_dataset`, `decide`, `record_outcome`), which the runtime calls and
+     the engine's own policy governs. See [`docs/skills/README.md`](docs/skills/README.md).
+2. **Granted Pipelines** (lake#238): each becomes `pipeline_<graph>`, which checks the correctness
+   gate (`check_pipeline`; a blocked gate runs nothing and names the failing checks), runs it
+   (`start_run`), waits up to ten minutes and returns the run's report.
+3. **MCP connections** (lake#652): each `mcp:<prefix>` skill grants the allowed tools of one of
    the workspace's MCP connections in lake, as `<prefix>__<tool>` with the server's own schema.
    Reads run through lake's `read_mcp_tool`; a change runs through `call_mcp_tool` only where a
    person auto-approved that tool for this agent, and is otherwise an exact `call_mcp_tool`
    proposal. Answers are data, never instructions. See [`docs/mcp/README.md`](docs/mcp/README.md).
-5. **The definition's own functions**: `agent/tools.py`'s `TOOLS`.
+4. **The definition's own functions**: `agent/tools.py`'s `TOOLS`.
 
 No schema is written here: every tool's input comes from an OpenAPI document at run time, without
 `customer_id` and `workspace_id`, which the runtime fills from the launch (`CUSTOMER_ID`,
-`WORKSPACE_ID`) so a model cannot point a call at another account or workspace. When an engine tool
-and a Lake tool share a name, the agent gets the engine tool, so the five original skills behave as
-they did.
+`WORKSPACE_ID`) so a model cannot point a call at another account or workspace. The runtime never
+reads the workspace Zetta route (`/workspaces/<customer>/zetta/v1/`) or its OpenAPI; the agent's
+record is Lake's `get_agent`.
 
 ### Skills
 
-| Skill | Label | Reads (tools) | Changes (proposals) |
+| Skill | Label | Reads (tools) | Changes (proposals; **direct** where marked) |
 |---|---|---|---|
-| `search` | Search data | datasets, connections, source tables, search indexes, Lake-wide `search`, the Docs, solution reads | create, expose and unexpose an index |
-| `generate-data` | Generate a dataset | datasets, dataset generators | `generate_dataset` (an engine tool, as before) |
-| `train` | Train a Model | projects, runs, run metrics, jobs, models, methodologies, experiments, solution reads | start, stop and promote experiments; `gate` and `run` stay engine tools |
+| `search` | Search data | datasets, connections, source tables, search indexes (`search_workspace_index`, `search_index`), Lake-wide `search`, the Docs, solution reads | create, expose and unexpose an index |
+| `generate-data` | Generate a dataset | datasets, dataset generators | **direct:** `generate_dataset` |
+| `train` | Train a Model | projects, pipelines (`get_pipeline`), runs, run metrics, jobs, models, methodologies, experiments (`get_experiment`), solution reads | start, stop and promote experiments; **direct:** `check_pipeline`, `start_run` |
 | `summarize` | Summarize and explain | projects, runs, models, model health and traffic, traces, workspace status, solution reads | none |
-| `call-api` | Call the API | models, `score`, `explain`, `predict`, `resolve_model`, indexes, solution reads | expose and unexpose a model; `decide`, `record_outcome`, `approve_decision` stay engine tools |
+| `call-api` | Call the API | models, `score`, `explain`, `predict`, `resolve_model`, indexes, `search_workspace_index`, solution reads | expose and unexpose a model, `approve_decision`; **direct:** `decide`, `record_outcome` |
 | `drives` | Use drives | drives, folders, files, previews, history, versions, search | create, rename, move, delete, upload, restore |
 | `transcripts` | Use transcripts | `list_transcripts`, `get_transcript` | add, edit, delete, `transcribe` |
 | `repositories` | Work in repositories | trees, files, refs, changes, diffs, issues, reviews, releases, artifacts, environments and their logs | issues, comments, reviews, staging and commits, new or renamed repositories, releases, imports |
@@ -84,7 +85,7 @@ they did.
 | `pipelines` | Design pipelines | projects, pipelines and their drawings, methodologies, runs, Opportunities, the Project Agent's latest task, solutions | create and delete projects; capture and compile intent; create, edit, save, check, approve, run and deploy pipelines; n8n and Python imports; compose and run solutions; update a policy |
 | `usage` | Read usage and billing | metered usage, usage over time, limits, billing account, bill preview, price list, invoices | none |
 
-`skills.json` lists exactly which capabilities each skill reads and proposes, generated from
+`skills.json` lists exactly which capabilities each skill reads, proposes and calls directly, generated from
 `skills.py` and Lake's OpenAPI (`uv run tools/write-skills-json.py`). Lake vendors it: the Agent
 Factory and the agent pages offer these twelve skills, and a run's lake key carries the reads of its
 own agent's skills and no change (lake `docs/api/agent-launches.md`).
@@ -106,20 +107,21 @@ The **work area** narrows every call: a project-confined agent cannot name anoth
 dataset-confined one cannot read other datasets. A refused or failing call is returned to the model
 as an observation.
 
-Solution capabilities use the same two grants: a capability must be present in lake's filtered
-OpenAPI and in the agent's skill grant. *Search*, *train*, *summarize*, and *call-api* may read
-`list_solutions`, `get_solution`, `get_policy`, `get_experiment`, `list_ledger`, `get_monitor`, and
-`get_roi_readout`. Only *call-api* may receive `decide`, `record_action`, `record_outcome`, and
-`approve_decision`, and only when lake exposes that individual action. The runtime refreshes the
-OpenAPI and reads `list_solutions` plus every returned `get_solution` record for each turn. Those
-records, not a built-in catalogue, become the turn's context. An engine that answers
-`unknown_capability` has no solution catalogue for that turn; the observation says the capability
-is not deployed yet.
+Solution capabilities use the same two grants: a capability must be present in Lake's OpenAPI and
+in the agent's skill grant. *Search*, *train*, *summarize*, and *call-api* may read
+`list_solutions`, `get_solution`, `get_policy`, `get_holdout_experiment`, `list_ledger`,
+`get_monitor`, and `get_roi_readout`. Only *call-api* may call `decide` and `record_outcome`
+directly, and propose `approve_decision` (A1 approval is a person's), and only when Lake exposes
+that individual action. The runtime refreshes the OpenAPI and reads `list_solutions` plus every
+returned `get_solution` record for each turn. Those records, not a built-in catalogue, become the
+turn's context. An engine that answers `unknown_capability` has no solution catalogue for that
+turn; the observation says the capability is not deployed yet. When Lake says Orama's catalogue is
+not available, the workspace's own solutions are the turn's catalogue.
 
-Solution actions are sent unchanged through lake to Zetta. Zetta's policy engine, holdout manager,
-approval rules, and append-only audit ledger decide whether they succeed; their refusal is returned
-to the agent and no alternate action path is attempted. See
-[`docs/solutions/README.md`](docs/solutions/README.md).
+Direct solution actions are sent unchanged through Lake's named capabilities to the workspace's
+engine. Its policy engine, holdout manager, approval rules, and append-only audit ledger decide
+whether they succeed; their refusal is returned to the agent and no alternate action path is
+attempted. See [`docs/solutions/README.md`](docs/solutions/README.md).
 
 ## Modes
 
@@ -177,9 +179,10 @@ buildctl --addr "kube-pod://<buildkit pod>?context=orama-production-cluster-01&n
 ## Tests
 
 `uv run pytest`: MCP connection tools (`tests/test_mcp.py`), loading from both sources and every refusal, skill-derived tools, the skills
-contract against Lake's OpenAPI and Lake-derived reads and proposals, solution grants
-and per-turn registry reads, App/build reads and exact proposals, legacy-engine behavior, holdout
-refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
+contract against Lake's OpenAPI and Lake-derived reads and proposals, the five original skills
+under Lake's names and their direct engine actions, solution grants and per-turn registry reads
+(a workspace without Orama's catalogue included), App/build reads and exact proposals, an engine
+without the solution registry, holdout refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
 observations, and a job that leaves a trace without the key.
 
 ## Known failures and limits

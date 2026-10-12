@@ -1,9 +1,10 @@
 """Everything the runtime reaches, it reaches through lake.
 
-A user-created agent never holds a workspace's admin token. Its Zetta calls go to lake's
-Zetta-compatible path for the customer's workspace (`/workspaces/<customer>/zetta/v1/`,
-lake#235), which applies lake's allow-lists, authorizes the call on the customer and audits it as
-the agent's token. Code stored in a lake repository is read through lake's REST surface
+A user-created agent never holds a workspace's admin token. Every call, the workspace engine's
+included, is one of Lake's named capabilities (`/v1/<name>`): since lake#674 each engine
+capability has a Lake name (`check_pipeline` for the engine's `gate`, `start_run` for `run`, ...),
+which Lake authorizes on the customer and audits in the workspace as the agent's token
+(agent-runtime#11). Code stored in a lake repository is read through lake's REST surface
 (`repository_tree`, `repository_file`).
 
 A failed call is returned as a `Reply` with `ok=False`, never raised: the agent is supposed to
@@ -53,39 +54,13 @@ class Lake:
     def close(self) -> None:
         self.client.close()
 
-    # -- the workspace's Zetta, through lake -------------------------------------------------
-
-    @property
-    def zetta_base(self) -> str:
-        return f"/workspaces/{self.customer_id}/zetta"
-
-    def zetta_openapi(self) -> dict[str, Any]:
-        """The workspace's OpenAPI, already reduced by lake to what may be called."""
-        response = self.client.get(f"{self.zetta_base}/v1/openapi.json")
-        response.raise_for_status()
-        return response.json()
+    # -- lake's capabilities -----------------------------------------------------------------
 
     def openapi(self) -> dict[str, Any]:
         """lake's OpenAPI, filtered to the capabilities this agent credential may use."""
         response = self.client.get("/v1/openapi.json")
         response.raise_for_status()
         return response.json()
-
-    def zetta(self, capability: str, arguments: dict[str, Any], method: str) -> Reply:
-        """GET /v1/<capability>?<args> for a read, POST with a JSON body for an action."""
-        path = f"{self.zetta_base}/v1/{capability}"
-        try:
-            if method == "get":
-                params = {key: value if isinstance(value, str) else json.dumps(value)
-                          for key, value in arguments.items() if value is not None}
-                response = self.client.get(path, params=params)
-            else:
-                response = self.client.post(path, json=arguments)
-        except httpx.HTTPError as error:
-            return Reply(False, error=f"{type(error).__name__}: {error}")
-        return envelope(response)
-
-    # -- lake's own capabilities -------------------------------------------------------------
 
     def read(self, capability: str, **arguments: Any) -> Reply:
         try:
@@ -122,7 +97,9 @@ class Lake:
         return envelope(response)
 
     def get_agent(self, agent_id: str) -> Reply:
-        return self.zetta("get_agent", {"id": agent_id}, "get")
+        """The agent's record, from its workspace's engine through Lake's `get_agent`."""
+        return self.capability("get_agent", {"id": agent_id}, "get",
+                               ["customer_id", "workspace_id"])
 
     def repository_files(self, repository_id: str, revision: str) -> dict[str, str]:
         """Every file of a lake repository at a pinned revision, path to text."""

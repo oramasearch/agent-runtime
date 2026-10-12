@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Write skills.json: each skill with its label and the Lake capabilities it grants, split into
-reads (tools) and changes (proposals) by Lake's own `x-lake-action`
-(tests/fixtures/lake-capabilities.json, vendored from Lake's OpenAPI).
+reads (tools) and changes by Lake's own `x-lake-action` (tests/fixtures/lake-capabilities.json,
+vendored from Lake's OpenAPI). A change is a proposal, except the skill's `direct` engine actions,
+which the runtime calls itself under the engine's policy (agent-runtime#11).
 
 Lake vendors this file (lake `tools/agents/vendor-agent-skills.py`): the Agent Factory and the
 agent pages offer exactly these skills, and a launched agent's key carries the reads of its own
@@ -35,8 +36,10 @@ def document() -> str:
             "name": skill.name,
             "label": skill.label,
             "reads": [name for name in granted if capabilities[name]["action"] == "read"],
-            "proposals": [name for name in granted if capabilities[name]["action"] != "read"],
-            "engine": sorted(skill.engine),
+            "proposals": [name for name in granted
+                          if capabilities[name]["action"] != "read" and name not in skill.direct],
+            "direct": [name for name in granted
+                       if capabilities[name]["action"] != "read" and name in skill.direct],
         })
     return json.dumps({"skills": skills}, indent=1) + "\n"
 

@@ -71,14 +71,10 @@ def load(lake: Lake, agent_id: str, record: dict[str, Any] | None = None) -> Loa
         record = got.value
     agent = definition.from_record(record, lake)
     try:
-        openapi = lake.zetta_openapi()
-    except Exception as error:  # the workspace's tools are unavailable, the run still reports it
-        raise LoadError(f"cannot read the workspace's tools: {error}") from error
-    try:
         lake_openapi = lake.openapi()
-    except Exception:
-        lake_openapi = {"paths": {}}
-    tools = all_tools(agent, lake, openapi, lake_openapi)
+    except Exception as error:  # the agent's tools are unavailable, the run still reports it
+        raise LoadError(f"cannot read the agent's tools from Lake: {error}") from error
+    tools = all_tools(agent, lake, lake_openapi)
     model = agent.model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
     return Loaded(agent, tools, model, lake)
 
@@ -203,19 +199,15 @@ def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: di
 
 def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]:
     """A lake-wide agent (AGENT_PER_TURN_CREDENTIALS=1) works for whoever sent the turn: lake
-    hands over that person's key and space, and the tools are derived from their workspace."""
+    hands over that person's key and workspace, and the tools are derived from their workspace."""
     if os.environ.get("AGENT_PER_TURN_CREDENTIALS") != "1":
         if loaded.lake is None:
             return loaded, None
         try:
-            openapi = loaded.lake.zetta_openapi()
-        except Exception:
-            openapi = {"paths": {}}
-        try:
             lake_openapi = loaded.lake.openapi()
         except Exception:
             lake_openapi = {"paths": {}}
-        tools = all_tools(loaded.agent, loaded.lake, openapi, lake_openapi)
+        tools = all_tools(loaded.agent, loaded.lake, lake_openapi)
         return Loaded(loaded.agent, tools, loaded.model, loaded.lake), None
     token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
     if not token or not customer:
@@ -223,14 +215,10 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
     lake = Lake(os.environ["LAKE_URL"], token, customer,
                 workspace_id=turn.get("workspace_id") or "")
     try:
-        openapi = lake.zetta_openapi()
-    except Exception:  # a space without a ready workspace still gets an answer
-        openapi = {"paths": {}}
-    try:
         lake_openapi = lake.openapi()
-    except Exception:
+    except Exception:  # a workspace that is not ready still gets an answer
         lake_openapi = {"paths": {}}
-    tools = all_tools(loaded.agent, lake, openapi, lake_openapi)
+    tools = all_tools(loaded.agent, lake, lake_openapi)
     return Loaded(loaded.agent, tools, loaded.model, lake), lake
 
 

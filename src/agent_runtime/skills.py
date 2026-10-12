@@ -1,18 +1,22 @@
 """The skills a person grants a user-built agent, and what each one lets it reach.
 
-A skill names capabilities; it never carries a schema. Every tool's input schema comes from an
-OpenAPI document at run time, so a skill grants only what Lake actually publishes:
+A skill names Lake capabilities (``/v1/<name>``, Lake's OpenAPI); it never carries a schema. Every
+tool's input schema comes from Lake's OpenAPI at run time, so a skill grants only what Lake
+actually publishes. What a call does comes from the operation's ``x-lake-action``:
 
-- ``engine``: the workspace engine's own names, reached through Lake's filtered workspace OpenAPI
-  (``/workspaces/<customer>/zetta/v1/``, lake#235). The five original skills grant these, and the
-  runtime calls them as before (``tools.workspace_tools``).
-- ``lake``: Lake's own capabilities (``/v1/<name>``, Lake's OpenAPI). What a call does comes from
-  the operation's ``x-lake-action``: a ``read`` is a tool that calls Lake; anything else is a
-  **proposal**, the exact capability and input returned for a person to confirm in Lake, never sent
-  by this runtime (``tools.lake_tools``).
+- a ``read`` is a tool that calls Lake;
+- any other is a **proposal**, the exact capability and input returned for a person to confirm in
+  Lake, never sent by this runtime (``tools.lake_tools``);
+- except a skill's ``direct`` actions: the few workspace engine actions the runtime calls itself,
+  because the engine's own policy governs each one (gate checks, holdouts, policy tiers, the
+  append-only ledger). Which actions are direct, and why, is ``docs/skills/README.md`` (*Direct
+  actions*, agent-runtime#11).
 
-When an engine tool and a Lake tool have the same name, the engine tool is the one the agent gets,
-so the five original skills behave as they did.
+The five original skills used to reach the engine under its own names through Lake's workspace
+Zetta route (``/workspaces/<customer>/zetta/v1/``). Since lake#674 every engine capability has a
+Lake name (``check_pipeline`` for ``gate``, ``start_run`` for ``run``, ``get_pipeline`` for
+``get_graph``, ``search_workspace_index`` for ``search``, ``get_holdout_experiment`` for the
+solution ``get_experiment``), so every skill grants Lake names only.
 
 Every Lake capability is accounted for: it belongs to a skill, to the App and build capabilities
 every agent has (``apps.py``), or to ``NEVER_FOR_AGENTS``. ``tests/test_skills.py`` fails when Lake
@@ -27,27 +31,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Solution reads are useful to agents that inspect, train, summarize, or call a deployed API.
-# Mutations belong only to call-api, and lake's filtered OpenAPI must also grant each one.
-SOLUTION_READ_CAPABILITIES = frozenset({
-    "list_solutions",
-    "get_solution",
-    "get_policy",
-    "list_ledger",
-    "get_experiment",
-    "get_monitor",
-    "get_roi_readout",
-})
-SOLUTION_ACTION_CAPABILITIES = frozenset({
-    "decide",
-    "record_action",
-    "record_outcome",
-    "approve_decision",
-})
-
-# The same solution reads under Lake's names (lake#650: Lake says get_holdout_experiment where the
-# engine says get_experiment).
-LAKE_SOLUTION_READS = frozenset({
+# The solution registry's reads, under Lake's names (lake#650, lake#674: Lake says
+# get_holdout_experiment where the engine says get_experiment). Useful to agents that inspect,
+# train, summarize, or call a deployed API.
+SOLUTION_READS = frozenset({
     "list_solutions", "get_solution", "get_policy", "list_ledger", "get_holdout_experiment",
     "get_monitor", "get_roi_readout",
 })
@@ -57,71 +44,72 @@ LAKE_SOLUTION_READS = frozenset({
 class Skill:
     name: str
     label: str
-    engine: frozenset[str]
+    # Every Lake capability the skill grants: reads are tools, changes are proposals.
     lake: frozenset[str]
+    # The changes among them the runtime calls itself, governed by the engine's own policy.
+    direct: frozenset[str] = frozenset()
 
 
-def _skill(name: str, label: str, engine: set[str] | frozenset[str] = frozenset(),
-           lake: set[str] | frozenset[str] = frozenset()) -> Skill:
-    return Skill(name, label, frozenset(engine), frozenset(lake))
+def _skill(name: str, label: str, lake: set[str] | frozenset[str],
+           direct: set[str] | frozenset[str] = frozenset()) -> Skill:
+    return Skill(name, label, frozenset(lake) | frozenset(direct), frozenset(direct))
 
 
 SKILLS: dict[str, Skill] = {skill.name: skill for skill in [
     # -- the original five (Studio's skills, orama-design studioAgents.js) ----------------------
     _skill(
         "search", "Search data",
-        engine={"list_datasets", "get_dataset", "list_connections", "list_source_tables",
-                "list_indexes", "get_index", "search"} | SOLUTION_READ_CAPABILITIES,
         lake={
             # Lake-wide search across repositories, and the Docs.
             "search", "list_docs", "get_doc",
-            # Search indexes: reads are tools, creating and exposing one is a proposal.
+            # Search indexes: reads are tools (search_workspace_index is the engine's search),
+            # creating and exposing one is a proposal.
             "list_indexes", "get_index", "search_index", "search_workspace_index",
             "create_index", "expose_index", "unexpose_index",
             "list_datasets", "get_dataset", "list_connections", "list_source_tables",
-        } | LAKE_SOLUTION_READS,
+        } | SOLUTION_READS,
     ),
     _skill(
         "generate-data", "Generate a dataset",
-        engine={"list_datasets", "list_dataset_generators", "generate_dataset"},
-        lake={"list_datasets", "list_dataset_generators", "generate_dataset"},
+        lake={"list_datasets", "list_dataset_generators"},
+        # The engine admits only gated cases (references pass, negative controls fail).
+        direct={"generate_dataset"},
     ),
     _skill(
         "train", "Train a Model",
-        engine={"list_datasets", "get_dataset", "list_projects", "get_project", "get_graph",
-                "list_runs", "get_run", "get_run_report", "list_models", "get_model", "gate",
-                "run"} | SOLUTION_READ_CAPABILITIES,
         lake={
-            "list_datasets", "get_dataset", "list_projects", "get_project", "list_runs",
-            "get_run", "get_run_report", "get_run_metrics", "compare_runs", "list_jobs",
-            "get_job", "list_models", "get_model", "list_methodologies",
-            # Experiments (the engine's studies).
+            "list_datasets", "get_dataset", "list_projects", "get_project", "get_pipeline",
+            "list_runs", "get_run", "get_run_report", "get_run_metrics", "compare_runs",
+            "list_jobs", "get_job", "list_models", "get_model", "list_methodologies",
+            # Experiments (the engine's studies). get_experiment is Lake's training experiment.
             "list_experiments", "get_experiment", "list_experiment_trials",
             "get_experiment_analysis", "validate_experiment", "tail_experiment_events",
             "start_experiment", "stop_experiment", "stop_experiment_trial", "promote_trial",
             "agent_training_status",
-        } | LAKE_SOLUTION_READS,
+        } | SOLUTION_READS,
+        # The engine's gate and run: check_pipeline changes nothing, and start_run runs only a
+        # stored pipeline that passes the gate.
+        direct={"check_pipeline", "start_run"},
     ),
     _skill(
         "summarize", "Summarize and explain",
-        engine={"list_projects", "get_project", "list_runs", "get_run", "get_run_report",
-                "list_models", "get_model", "model_health"} | SOLUTION_READ_CAPABILITIES,
         lake={
             "list_projects", "get_project", "list_runs", "get_run", "get_run_report",
             "list_models", "get_model", "model_health", "model_traffic",
             "workspace_engine_info", "workspace_status", "get_workspace", "list_traces",
             "get_trace",
-        } | LAKE_SOLUTION_READS,
+        } | SOLUTION_READS,
     ),
     _skill(
         "call-api", "Call the API",
-        engine={"list_models", "get_model", "score", "explain", "list_indexes", "search"}
-        | SOLUTION_READ_CAPABILITIES | SOLUTION_ACTION_CAPABILITIES,
         lake={
             "list_models", "get_model", "score", "explain", "predict", "resolve_model",
-            "list_indexes", "expose_model", "unexpose_model",
-            "decide", "record_outcome", "approve_decision",
-        } | LAKE_SOLUTION_READS,
+            "list_indexes", "search_workspace_index", "expose_model", "unexpose_model",
+            # A1 approval is a person's: an agent proposes it (docs/skills/README.md).
+            "approve_decision",
+        } | SOLUTION_READS,
+        # The engine's policy decides what a decision allows; its ledger is append-only.
+        direct={"decide", "record_outcome"},
     ),
     # -- Lake's own areas (agent-runtime#7) -------------------------------------------------------
     _skill(
@@ -338,16 +326,6 @@ def never_for_agents() -> frozenset[str]:
     return frozenset(names)
 
 
-def engine_grant(skills: list[str]) -> set[str]:
-    """The workspace engine capabilities the agent's skills grant (engine names)."""
-    granted: set[str] = set()
-    for name in skills:
-        skill = SKILLS.get(name)
-        if skill is not None:
-            granted |= skill.engine
-    return granted
-
-
 def lake_grant(skills: list[str]) -> set[str]:
     """The Lake capabilities the agent's skills grant, never one on the never list."""
     granted: set[str] = set()
@@ -355,4 +333,14 @@ def lake_grant(skills: list[str]) -> set[str]:
         skill = SKILLS.get(name)
         if skill is not None:
             granted |= skill.lake
+    return granted - never_for_agents()
+
+
+def direct_grant(skills: list[str]) -> set[str]:
+    """The engine actions the agent's skills let the runtime call itself (Lake names)."""
+    granted: set[str] = set()
+    for name in skills:
+        skill = SKILLS.get(name)
+        if skill is not None:
+            granted |= skill.direct
     return granted - never_for_agents()
