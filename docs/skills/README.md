@@ -80,8 +80,10 @@ SSO and SCIM, a person's applications' sign-in, audit and the transparency log, 
 workspaces and infrastructure, webhooks, the generic workspace surface, other agents and the agent
 bus (the model gateway `model_completion` is reached through the OpenAI base URL, never as a tool),
 MCP connections (an agent reaches a connection's tools only through that connection's own
-`mcp:<prefix>` skill, `../../src/agent_runtime/mcp.py`), and events only an App, a build or the
-operator publishes. Deleting a dataset, model, run or index, and training, retraining, registering,
+`mcp:<prefix>` skill, `../../src/agent_runtime/mcp.py`), events only an App, a build or the
+operator publishes, and a methodology run's runner side (`methodology_run_input`,
+`methodology_run_output`, called only with the run's own credential, lake#655). A workspace's own
+methodologies are read by *train* and *pipelines*, and changed by *pipelines* as proposals. Deleting a dataset, model, run or index, and training, retraining, registering,
 loading or moving a standalone model are changes in the *datasets* and *pipelines* skills: proposals
 a person confirms. `lake_grant` removes these even if
 a skill named one.

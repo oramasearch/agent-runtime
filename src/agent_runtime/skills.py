@@ -81,6 +81,7 @@ SKILLS: dict[str, Skill] = {skill.name: skill for skill in [
             "list_datasets", "get_dataset", "list_projects", "get_project", "get_pipeline",
             "list_runs", "get_run", "get_run_report", "get_run_metrics", "compare_runs",
             "list_jobs", "get_job", "list_models", "get_model", "list_methodologies",
+            "get_methodology", "list_methodology_runs", "get_methodology_run",
             # Experiments (the engine's studies). get_experiment is Lake's training experiment.
             "list_experiments", "get_experiment", "list_experiment_trials",
             "get_experiment_analysis", "validate_experiment", "tail_experiment_events",
@@ -168,6 +169,11 @@ SKILLS: dict[str, Skill] = {skill.name: skill for skill in [
         lake={
             "list_projects", "get_project", "get_pipeline", "render_pipeline",
             "list_methodologies", "list_runs", "get_run", "get_run_report", "list_opportunities",
+            # A workspace's own methodologies (lake#655): reads are tools, changes proposals.
+            "get_methodology", "list_methodology_runs", "get_methodology_run",
+            "draft_methodology", "create_methodology", "update_methodology",
+            "duplicate_methodology", "delete_methodology", "validate_methodology",
+            "run_methodology", "stop_methodology_run",
             "latest_agent_task", "list_solutions", "get_solution",
             "create_project", "delete_project", "capture_intent", "compile_intent",
             "compile_pipeline", "create_pipeline", "edit_pipeline", "save_pipeline",
@@ -315,6 +321,9 @@ NEVER_FOR_AGENTS: dict[str, frozenset[str]] = {
     }),
     "events only an App, a build or the operator publishes": frozenset({
         "publish_app_event", "publish_build_event",
+    }),
+    "a methodology run's runner side, with the run's own credential (lake#655)": frozenset({
+        "methodology_run_input", "methodology_run_output",
     }),
 }
 

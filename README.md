@@ -74,7 +74,7 @@ record is Lake's `get_agent`.
 |---|---|---|---|
 | `search` | Search data | datasets, connections, source tables, search indexes (`search_workspace_index`, `search_index`), Lake-wide `search`, the Docs, solution reads | create, expose and unexpose an index |
 | `generate-data` | Generate a dataset | datasets, dataset generators | **direct:** `generate_dataset` |
-| `train` | Train a Model | projects, pipelines (`get_pipeline`), runs, run metrics, jobs, models, methodologies, experiments (`get_experiment`), solution reads | start, stop and promote experiments; **direct:** `check_pipeline`, `start_run` |
+| `train` | Train a Model | projects, pipelines (`get_pipeline`), runs, run metrics, jobs, models, methodologies and their runs, experiments (`get_experiment`), solution reads | start, stop and promote experiments; **direct:** `check_pipeline`, `start_run` |
 | `summarize` | Summarize and explain | projects, runs, models, model health and traffic, traces, workspace status, solution reads | none |
 | `call-api` | Call the API | models, `score`, `explain`, `predict`, `resolve_model`, indexes, `search_workspace_index`, solution reads | expose and unexpose a model, `approve_decision`; **direct:** `decide`, `record_outcome` |
 | `drives` | Use drives | drives, folders, files, previews, history, versions, search | create, rename, move, delete, upload, restore |
@@ -82,7 +82,7 @@ record is Lake's `get_agent`.
 | `repositories` | Work in repositories | trees, files, refs, changes, diffs, issues, reviews, releases, artifacts, environments and their logs | issues, comments, reviews, staging and commits, new or renamed repositories, releases, imports |
 | `datasets` | Load datasets | datasets, analysis, feature plans, connections, source tables, generators | load from a drive, upload, from a connection query, promote, save or delete a connection |
 | `streams` | Read and publish streams | streams and their messages | publish, create, update, delete |
-| `pipelines` | Design pipelines | projects, pipelines and their drawings, methodologies, runs, Opportunities, the Project Agent's latest task, solutions | create and delete projects; capture and compile intent; create, edit, save, check, approve, run and deploy pipelines; n8n and Python imports; compose and run solutions; update a policy |
+| `pipelines` | Design pipelines | projects, pipelines and their drawings, methodologies (a drafted one included) and their runs, runs, Opportunities, the Project Agent's latest task, solutions | create and delete projects; capture and compile intent; create, edit, save, check, approve, run and deploy pipelines; n8n and Python imports; compose and run solutions; update a policy; create, update, duplicate, delete, validate, run and stop the workspace's own methodologies |
 | `usage` | Read usage and billing | metered usage, usage over time, limits, billing account, bill preview, price list, invoices | none |
 
 `skills.json` lists exactly which capabilities each skill reads, proposes and calls directly, generated from
