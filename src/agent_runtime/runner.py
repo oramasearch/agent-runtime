@@ -21,6 +21,7 @@ neither does the agent code it runs: an entrypoint's `context.client` is that sa
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import os
 import sys
@@ -231,6 +232,13 @@ def turn_model(model_client: OpenAI | None, turn: dict[str, Any]) -> OpenAI:
                           turn.get("lake_token") or "")
 
 
+def health(loaded: Loaded) -> dict[str, Any]:
+    """`GET /healthz`: the agent, its tools and model, and the runtime's own release."""
+    return {"ok": True, "agent": loaded.agent.id, "name": loaded.agent.name,
+            "tools": [tool.name for tool in loaded.tools], "model": loaded.model,
+            "version": importlib.metadata.version("agent-runtime")}
+
+
 def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) -> int:
     trace_dir = Path(os.environ.get("TRACE_DIR", "/tmp/agent-runtime-traces"))
     token = os.environ.get("AGENT_SERVICE_TOKEN", "")
@@ -284,9 +292,7 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
 
         def do_GET(self) -> None:  # noqa: N802 (the stdlib's name)
             if self.path == "/healthz":
-                self._send(200, {"ok": True, "agent": loaded.agent.id, "name": loaded.agent.name,
-                                 "tools": [tool.name for tool in loaded.tools],
-                                 "model": loaded.model})
+                self._send(200, health(loaded))
                 return
             self._send(404, {"ok": False, "error": "not found"})
 
