@@ -11,6 +11,8 @@ The specialized agents of the Agent Library (Ask Orama, the Project Agent, Auto-
 separate repos with their own images; this runtime is for the agents people build in Train →
 Agents or with the Agent Factory.
 
+**Current release: [v0.1.0](docs/releases/v0.1.0.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
+
 ## What it loads
 
 The record (zetta#1015) carries Studio's shape (purpose, work area, manifesto, goal, skills,
@@ -128,7 +130,7 @@ attempted. See [`docs/solutions/README.md`](docs/solutions/README.md).
 | Mode | What it does |
 |---|---|
 | `job` | Reads `AGENT_INPUT` (JSON), runs, prints the result, writes a ≤ 4 KiB summary to `/dev/termination-log` for the operator. Exit `0` answered, `2` finished without an answer, `1` could not run |
-| `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools and model. `AGENT_SERVICE_TOKEN`, when set, is required as a bearer |
+| `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools, the model and the runtime's version. `AGENT_SERVICE_TOKEN`, when set, is required as a bearer |
 
 Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, `LAKE_TOKEN` (the
 agent's lake key), `CUSTOMER_ID`, `WORKSPACE_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,
@@ -183,7 +185,8 @@ contract against Lake's OpenAPI and Lake-derived reads and proposals, the five o
 under Lake's names and their direct engine actions, solution grants and per-turn registry reads
 (a workspace without Orama's catalogue included), App/build reads and exact proposals, an engine
 without the solution registry, holdout refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
-observations, and a job that leaves a trace without the key.
+observations, a job that leaves a trace without the key, and the release (`tests/test_release.py`:
+the version in `pyproject.toml` has release notes and `/healthz` reports it).
 
 ## Known failures and limits
 
