@@ -130,7 +130,7 @@ attempted. See [`docs/solutions/README.md`](docs/solutions/README.md).
 | Mode | What it does |
 |---|---|
 | `job` | Reads `AGENT_INPUT` (JSON), runs, prints the result, writes a ≤ 4 KiB summary to `/dev/termination-log` for the operator. Exit `0` answered, `2` finished without an answer, `1` could not run |
-| `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools, the model and the runtime's version. `AGENT_SERVICE_TOKEN`, when set, is required as a bearer |
+| `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools, the model and the runtime's version. `AGENT_SERVICE_TOKEN` is required as a bearer, compared in constant time (`401` otherwise); unset or empty, the route fails closed and refuses every turn with `503` |
 
 Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, `LAKE_TOKEN` (the
 agent's lake key), `CUSTOMER_ID`, `WORKSPACE_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,

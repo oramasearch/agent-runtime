@@ -21,6 +21,7 @@ neither does the agent code it runs: an entrypoint's `context.client` is that sa
 from __future__ import annotations
 
 import argparse
+import hmac
 import importlib.metadata
 import json
 import os
@@ -239,6 +240,22 @@ def health(loaded: Loaded) -> dict[str, Any]:
             "version": importlib.metadata.version("agent-runtime")}
 
 
+def turn_refusal(authorization: str | None, token: str) -> tuple[int, str] | None:
+    """Why `POST /v1/turn` is refused, as `(status, error)`, or None when the caller may proceed.
+
+    The route fails closed: with `AGENT_SERVICE_TOKEN` unset or empty every turn is refused, so a
+    service started without it is never open. The bearer is compared in constant time
+    (`hmac.compare_digest` over bytes), so the comparison's timing says nothing about the token.
+    """
+    if not token:
+        return 503, "AGENT_SERVICE_TOKEN is not set; this service refuses every turn"
+    expected = f"Bearer {token}".encode()
+    supplied = (authorization or "").encode("utf-8", "surrogateescape")
+    if not hmac.compare_digest(supplied, expected):
+        return 401, "unauthorized"
+    return None
+
+
 def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) -> int:
     trace_dir = Path(os.environ.get("TRACE_DIR", "/tmp/agent-runtime-traces"))
     token = os.environ.get("AGENT_SERVICE_TOKEN", "")
@@ -300,8 +317,10 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
             if self.path != "/v1/turn":
                 self._send(404, {"ok": False, "error": "not found"})
                 return
-            if token and self.headers.get("Authorization") != f"Bearer {token}":
-                self._send(401, {"ok": False, "error": "unauthorized"})
+            refusal = turn_refusal(self.headers.get("Authorization"), token)
+            if refusal is not None:
+                status, error = refusal
+                self._send(status, {"ok": False, "error": error})
                 return
             try:
                 turn = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
