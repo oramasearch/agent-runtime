@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from openai import OpenAI
 
@@ -198,6 +199,24 @@ def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: di
     return loop_result.as_dict()
 
 
+def lakes_url() -> str:
+    """Lake's address from this service's environment (`LAKE_URL`), the only place a turn's
+    credential is ever sent (agent-runtime#20). A turn's own `lake_url` is never used: it comes
+    from the request, so honouring it would send the bearer to a host the caller chose. Refuses
+    when `LAKE_URL` is unset or is not an absolute http(s) address."""
+    lake = os.environ.get("LAKE_URL", "").strip().rstrip("/")
+    try:
+        parts = urlsplit(lake)
+        _ = parts.port  # raises on a port that is not a number
+    except ValueError:
+        parts = None
+    if (parts is None or parts.scheme.lower() not in ("http", "https") or not parts.hostname
+            or "@" in parts.netloc):
+        raise LoadError("LAKE_URL is not set: this agent sends a turn's credential only to "
+                        "Lake's configured address")
+    return lake
+
+
 def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]:
     """A lake-wide agent (AGENT_PER_TURN_CREDENTIALS=1) works for whoever sent the turn: lake
     hands over that person's key and workspace, and the tools are derived from their workspace."""
@@ -213,7 +232,7 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
     token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
     if not token or not customer:
         raise LoadError("this agent works per turn: the turn needs lake_token and customer_id")
-    lake = Lake(os.environ["LAKE_URL"], token, customer,
+    lake = Lake(lakes_url(), token, customer,
                 workspace_id=turn.get("workspace_id") or "")
     try:
         lake_openapi = lake.openapi()
@@ -225,11 +244,11 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
 
 def turn_model(model_client: OpenAI | None, turn: dict[str, Any]) -> OpenAI:
     """The model for one service turn: the agent's own (its launch's key), or, for a per-turn
-    agent, one through lake with the key of whoever sent the turn (lake#248)."""
+    agent, one through lake with the key of whoever sent the turn (lake#248), at this service's
+    `LAKE_URL`; the turn's `lake_url` is ignored (agent-runtime#20)."""
     if model_client is not None:
         return model_client
-    return gateway_client(turn.get("lake_url") or os.environ.get("LAKE_URL", ""),
-                          turn.get("lake_token") or "")
+    return gateway_client(lakes_url(), turn.get("lake_token") or "")
 
 
 def health(loaded: Loaded) -> dict[str, Any]:
