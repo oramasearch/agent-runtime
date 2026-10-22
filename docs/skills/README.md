@@ -43,6 +43,14 @@ tool whose description begins "Propose" changes nothing.
 launch's `CUSTOMER_ID` and `WORKSPACE_ID` only to a capability that declares them. A read Lake
 also takes as POST is one tool, on GET. The work area narrows Lake reads as it narrows engine ones.
 
+A dataset work area permits only `get_dataset` with a matching database and table, and
+`list_datasets` with matching rows only. Slash/dot IDs are aliases; bare IDs use Lake's `datasets`
+database. Other reads and direct actions are refused until their source datasets can be verified;
+this includes search indexes, whose current source-table contract omits the database. Pipeline,
+MCP and definition tools are not exposed in dataset-confined runs. Proposals remain available.
+See the root README's work-area contract, including the separate Lake credential enforcement
+needed to confine custom Python entrypoints.
+
 ## Direct actions
 
 Decision (agent-runtime#11). Before, the five original skills ran every engine action they granted
