@@ -105,9 +105,23 @@ the App and build set, or to the never list, or the test fails and names it. Ref
 with `tools/vendor-lake-capabilities.py <lake>/v1/openapi.json` (a Lake started with
 `LAKE_BILLING=on`), or run the test against a live Lake with `LAKE_OPENAPI=<url or file>`.
 
-The **work area** narrows every call: a project-confined agent cannot name another project, a
-dataset-confined one cannot read other datasets. A refused or failing call is returned to the model
-as an observation.
+The **work area** narrows the runtime's model tools: a project-confined agent cannot name another
+project. A dataset-confined agent can use `get_dataset` for its named datasets and `list_datasets`
+with results filtered to those datasets. IDs retain their database: `public/accounts` and
+`public.accounts` are aliases, while a bare `accounts` means only `datasets/accounts`, Lake's
+default database. Empty or malformed dataset work areas refuse reads.
+
+Other reads and direct actions are refused in a dataset work area until their source datasets can
+be verified. This includes both index-search routes, global search, index lists, App/build reads,
+and pipeline execution; MCP and definition functions are not exposed as model tools. The current
+index registry names a bare source table, which cannot prove database membership. Proposals remain
+available because they return an exact request for a person to confirm without fetching data or
+executing a change. Dataset responses must carry a matching database and table; list metadata
+outside the filtered dataset rows is discarded. A refusal is an observation.
+
+This restriction protects the model tool loop. Custom Python entrypoints still run with the
+launch credential and can call Lake directly. Lake must also bind the credential to the work area
+to enforce it against custom code; that credential contract is not implemented in this runtime.
 
 Solution capabilities use the same two grants: a capability must be present in Lake's OpenAPI and
 in the agent's skill grant. *Search*, *train*, *summarize*, and *call-api* may read

@@ -144,6 +144,9 @@ class FakeLake:
         path = request.url.path
         if path == "/v1/openapi.json":
             return httpx.Response(200, json=self.lake_openapi)
+        if path.endswith("/v1/get_dataset"):
+            return httpx.Response(200, json={"ok": True, "value": {
+                "database": "datasets", "name": "accounts"}})
         return httpx.Response(200, json={"ok": True, "value": {"path": path,
                                                                **dict(request.url.params)}})
 
@@ -375,7 +378,9 @@ def test_the_work_area_reads_lakes_dataset_id(tmp_path):
     refused = tool.call({"id": "main/payroll"})
     assert not refused.ok and "only on accounts" in refused.error
     assert not fake.requests
-    assert tool.call({"id": "main/accounts"}).ok
+    assert not tool.call({"id": "main/accounts"}).ok
+    assert not fake.requests
+    assert tool.call({"id": "datasets/accounts"}).ok
 
 
 def test_the_skills_lake_offers_are_the_skills_here():

@@ -113,15 +113,67 @@ def customer_scoped(parameters: dict[str, Any]) -> dict[str, Any]:
     return scoped
 
 
-# The capabilities whose `id` names a project or a dataset (Lake's names; the engine said `name`
-# and `dataset`), so the work area can read it.
+# The capability whose `name` selects a project.
 PROJECT_BY_NAME = frozenset({"get_project"})
-DATASET_BY_ID = frozenset({"get_dataset"})
 
 
-def dataset_name(value: str) -> str:
-    """A dataset's own name, whether written `<database>/<name>`, `<database>.<name>` or bare."""
-    return value.replace("/", ".").split(".")[-1]
+def dataset_confined(agent: Agent) -> bool:
+    return (agent.work_area or {}).get("kind") == "dataset"
+
+
+def dataset_id(value: object) -> tuple[str, str] | None:
+    """Lake dataset IDs: slash/dot aliases, with `datasets` as the bare ID's database.
+
+    Accept only unambiguous SQL names. Do not decode, case-fold, strip paths, or discard the
+    database: the resulting ID must name exactly the resource Lake will read.
+    """
+    if not isinstance(value, str):
+        return None
+    parts = re.split(r"[/.]", value)
+    if len(parts) == 1:
+        parts.insert(0, "datasets")
+    if len(parts) != 2 or not all(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", p) for p in parts):
+        return None
+    return parts[0], parts[1]
+
+
+def dataset_grant(agent: Agent) -> set[tuple[str, str]]:
+    detail = (agent.work_area or {}).get("detail")
+    if not isinstance(detail, str):
+        return set()
+    ids = [dataset_id(item.strip()) for item in detail.split(",")]
+    # A malformed or empty entry invalidates the grant, including an empty work area.
+    return {item for item in ids if item is not None} if all(ids) else set()
+
+
+def dataset_row_id(row: object) -> tuple[str, str] | None:
+    """Require the response's explicit database and table, checking any redundant ID too."""
+    if not isinstance(row, dict):
+        return None
+    database, name = row.get("database"), row.get("name")
+    if not isinstance(database, str) or not isinstance(name, str):
+        return None
+    identity = dataset_id(f"{database}/{name}")
+    if "id" in row and dataset_id(row["id"]) != identity:
+        return None
+    return identity
+
+
+def dataset_reply(agent: Agent, capability: str, arguments: dict[str, Any], reply: Reply) -> Reply:
+    """Keep unscoped list metadata and unexpected dataset identities out of observations."""
+    if not reply.ok:
+        # A server error may itself quote an outside dataset or its schema.
+        return Reply(False, error="Lake could not read the dataset work area", code=reply.code)
+    allowed = dataset_grant(agent)
+    if capability == "get_dataset":
+        identity = dataset_row_id(reply.value)
+        if identity in allowed and identity == dataset_id(arguments.get("id")):
+            return reply
+    elif (capability == "list_datasets" and isinstance(reply.value, dict)
+          and isinstance(reply.value.get("datasets"), list)):
+        return Reply(True, {"datasets": [row for row in reply.value["datasets"]
+                                        if dataset_row_id(row) in allowed]})
+    return Reply(False, error="Lake returned an unverifiable dataset work-area response")
 
 
 def confined(agent: Agent, arguments: dict[str, Any], capability: str = "") -> str:
@@ -133,13 +185,25 @@ def confined(agent: Agent, arguments: dict[str, Any], capability: str = "") -> s
             arguments.get("name") if capability in PROJECT_BY_NAME or not capability else None)
         if named and named != detail:
             return f"this agent works only in project '{detail}', not '{named}'"
-    if kind == "dataset" and detail:
-        allowed = {name.strip() for name in detail.split(",") if name.strip()}
-        named = arguments.get("dataset") or arguments.get("dataset_path") or (
-            arguments.get("id") if capability in DATASET_BY_ID else None)
-        if (isinstance(named, str) and named
-                and dataset_name(named) not in {dataset_name(name) for name in allowed}):
-            return f"this agent works only on {', '.join(sorted(allowed))}, not '{named}'"
+    if kind == "dataset":
+        allowed = dataset_grant(agent)
+        refusal = f"this agent works only on {detail or 'its named datasets'}"
+        if not allowed:
+            return refusal + "; the dataset work area is empty or invalid"
+        if not isinstance(arguments, dict):
+            return refusal + "; tool arguments must be an object"
+        if capability == "get_dataset":
+            if (set(arguments) - {"id", "revision", *FIXED_FIELDS}
+                    or dataset_id(arguments.get("id")) not in allowed):
+                return refusal + "; the dataset selector is outside the work area or invalid"
+        elif capability == "list_datasets":
+            if set(arguments) - set(FIXED_FIELDS):
+                return refusal + "; unrecognized dataset-list selectors"
+        else:
+            # Indexes currently name only a bare source table, resolved across databases by the
+            # engine. Neither an index ID nor a matching basename proves dataset membership.
+            # All other capabilities need an explicit resource policy before they can run here.
+            return refusal + f"; cannot verify '{capability}' belongs to the dataset work area"
     return ""
 
 
@@ -213,10 +277,19 @@ def lake_tools(lake: Lake, openapi: dict[str, Any], agent: Agent | None = None) 
 
             def call(arguments: dict[str, Any], name: str = name, method: str = method,
                      fixed: list[str] = fixed, app: bool = app) -> Reply:
-                if agent is not None and not app:
+                if agent is not None and (not app or dataset_confined(agent)):
                     refusal = confined(agent, arguments, name)
                     if refusal:
                         return Reply(False, error=refusal)
+                if agent is not None and dataset_confined(agent):
+                    arguments = dict(arguments)
+                    if name == "get_dataset":
+                        # Send the identity we authorized, including the default database.
+                        identity = dataset_id(arguments["id"])
+                        assert identity is not None  # confined checked the selector
+                        arguments["id"] = "/".join(identity)
+                    reply = lake.capability(name, arguments, method, fixed)
+                    return dataset_reply(agent, name, arguments, reply)
                 return lake.capability(name, arguments, method, fixed if not app else None)
 
             derived.append(Tool(name, description, parameters, call))
@@ -235,6 +308,9 @@ def pipeline_tools(agent: Agent, lake: Lake, sleep: Callable[[float], None] = ti
                    deadline: float = PIPELINE_DEADLINE_SECONDS) -> list[Tool]:
     """A granted, approved Pipeline as one tool: check_pipeline, start_run, and the run's report
     (lake#238), through Lake's named engine capabilities (lake#674)."""
+    # A pipeline's stored graph may read datasets beyond a model-supplied override.
+    if dataset_confined(agent):
+        return []
     tools: list[Tool] = []
     for grant in agent.pipelines:
         project, graph = grant.get("project", ""), grant.get("graph", "")
@@ -293,7 +369,8 @@ def pipeline_tools(agent: Agent, lake: Lake, sleep: Callable[[float], None] = ti
 
 def definition_tools(agent: Agent) -> list[Tool]:
     """`agent/tools.py`'s TOOLS: plain callables, described by their docstrings."""
-    if agent.directory is None or not (agent.directory / "agent" / "tools.py").exists():
+    if (dataset_confined(agent) or agent.directory is None
+            or not (agent.directory / "agent" / "tools.py").exists()):
         return []
     from agent_runtime.loop import import_from
     module = import_from(agent.directory, "agent.tools")
