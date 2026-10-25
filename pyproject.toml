@@ -1,6 +1,6 @@
 [project]
 name = "agent-runtime"
-version = "0.1.0"
+version = "0.2.0"
 description = "The blank Python agent: loads a user-created agent from Zetta or a lake repository and runs it"
 readme = "README.md"
 authors = [

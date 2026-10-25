@@ -11,7 +11,7 @@ The specialized agents of the Agent Library (Ask Orama, the Project Agent, Auto-
 separate repos with their own images; this runtime is for the agents people build in Train →
 Agents or with the Agent Factory.
 
-**Current release: [v0.1.0](docs/releases/v0.1.0.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
+**Current release: [v0.2.0](docs/releases/v0.2.0.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
 
 ## What it loads
 
@@ -105,9 +105,23 @@ the App and build set, or to the never list, or the test fails and names it. Ref
 with `tools/vendor-lake-capabilities.py <lake>/v1/openapi.json` (a Lake started with
 `LAKE_BILLING=on`), or run the test against a live Lake with `LAKE_OPENAPI=<url or file>`.
 
-The **work area** narrows every call: a project-confined agent cannot name another project, a
-dataset-confined one cannot read other datasets. A refused or failing call is returned to the model
-as an observation.
+The **work area** narrows the runtime's model tools: a project-confined agent cannot name another
+project. A dataset-confined agent can use `get_dataset` for its named datasets and `list_datasets`
+with results filtered to those datasets. IDs retain their database: `public/accounts` and
+`public.accounts` are aliases, while a bare `accounts` means only `datasets/accounts`, Lake's
+default database. Empty or malformed dataset work areas refuse reads.
+
+Other reads and direct actions are refused in a dataset work area until their source datasets can
+be verified. This includes both index-search routes, global search, index lists, App/build reads,
+and pipeline execution; MCP and definition functions are not exposed as model tools. The current
+index registry names a bare source table, which cannot prove database membership. Proposals remain
+available because they return an exact request for a person to confirm without fetching data or
+executing a change. Dataset responses must carry a matching database and table; list metadata
+outside the filtered dataset rows is discarded. A refusal is an observation.
+
+This restriction protects the model tool loop. Custom Python entrypoints still run with the
+launch credential and can call Lake directly. Lake must also bind the credential to the work area
+to enforce it against custom code; that credential contract is not implemented in this runtime.
 
 Solution capabilities use the same two grants: a capability must be present in Lake's OpenAPI and
 in the agent's skill grant. *Search*, *train*, *summarize*, and *call-api* may read
@@ -130,7 +144,7 @@ attempted. See [`docs/solutions/README.md`](docs/solutions/README.md).
 | Mode | What it does |
 |---|---|
 | `job` | Reads `AGENT_INPUT` (JSON), runs, prints the result, writes a ≤ 4 KiB summary to `/dev/termination-log` for the operator. Exit `0` answered, `2` finished without an answer, `1` could not run |
-| `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools, the model and the runtime's version. `AGENT_SERVICE_TOKEN`, when set, is required as a bearer |
+| `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools, the model and the runtime's version. `AGENT_SERVICE_TOKEN` is required as a bearer, compared in constant time (`401` otherwise); unset or empty, the route fails closed and refuses every turn with `503` |
 
 Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, `LAKE_TOKEN` (the
 agent's lake key), `CUSTOMER_ID`, `WORKSPACE_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,
@@ -143,6 +157,12 @@ Orama's key, counts its tokens in the run's workspace by agent, run and model, a
 the account's monthly model-token limit is used up. The runtime holds no `OPENAI_API_KEY`, and
 neither can the code it runs: an entrypoint's `context.client` is that same client, so a person's
 agent code reaches the model only through lake.
+
+**A turn's credential goes only to Lake at this service's own `LAKE_URL`** (agent-runtime#20). A
+per-turn agent's model client and its Lake client are both made from `LAKE_URL`; a turn's
+`lake_url` is ignored, so a caller cannot have the service send a bearer to a host it names. With
+`LAKE_URL` unset, or not an absolute `http(s)` address without user info, every per-turn turn is
+refused before any request is made.
 
 **A lake-wide library agent on this runtime** (`AGENT_PER_TURN_CREDENTIALS=1`, AgentCreator) also
 takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`, lake#269). `lake_bus.py`
@@ -185,7 +205,8 @@ contract against Lake's OpenAPI and Lake-derived reads and proposals, the five o
 under Lake's names and their direct engine actions, solution grants and per-turn registry reads
 (a workspace without Orama's catalogue included), App/build reads and exact proposals, an engine
 without the solution registry, holdout refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
-observations, a job that leaves a trace without the key, and the release (`tests/test_release.py`:
+observations, a job that leaves a trace without the key, a turn's credential sent only to
+`LAKE_URL` (`tests/test_turn_destinations.py`), and the release (`tests/test_release.py`:
 the version in `pyproject.toml` has release notes and `/healthz` reports it).
 
 ## Known failures and limits

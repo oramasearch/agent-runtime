@@ -21,7 +21,7 @@ from typing import Any
 
 from agent_runtime.definition import Agent
 from agent_runtime.lake import Lake, Reply
-from agent_runtime.tools import Tool
+from agent_runtime.tools import Tool, dataset_confined
 
 SKILL_PREFIX = "mcp:"
 CONTEXT_PREFIX = "## Connected MCP tools"
@@ -47,6 +47,9 @@ def as_data(reply: Reply) -> Reply:
 
 
 def mcp_tools(agent: Agent, lake: Lake) -> list[Tool]:
+    # External tool schemas do not establish membership in a Lake dataset work area.
+    if dataset_confined(agent):
+        return []
     prefixes = granted_prefixes(agent)
     if not prefixes:
         return []
