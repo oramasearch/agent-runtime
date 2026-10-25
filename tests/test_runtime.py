@@ -680,8 +680,10 @@ def test_every_model_call_goes_through_lakes_gateway_with_the_runs_key(monkeypat
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(runner, "gateway_client", lambda url, token: model.gateway_client(
         url, token, http_client=httpx.Client(transport=httpx.MockTransport(gateway))))
-    # A per-turn agent (AgentCreator) uses the key of whoever sent the turn.
-    client = runner.turn_model(None, {"lake_url": "http://lake:8080", "lake_token": "lat.t.s"})
+    # A per-turn agent (AgentCreator) uses the key of whoever sent the turn, at this service's
+    # LAKE_URL; the turn's own lake_url is never used (agent-runtime#20).
+    monkeypatch.setenv("LAKE_URL", "http://lake:8080")
+    client = runner.turn_model(None, {"lake_url": "http://elsewhere:9", "lake_token": "lat.t.s"})
     client.chat.completions.create(model="gpt-5.5", messages=[{"role": "user", "content": "x"}])
     assert str(seen[0].url) == "http://lake:8080/openai/v1/chat/completions"
     assert seen[0].headers["authorization"] == "Bearer lat.t.s"

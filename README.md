@@ -144,6 +144,12 @@ the account's monthly model-token limit is used up. The runtime holds no `OPENAI
 neither can the code it runs: an entrypoint's `context.client` is that same client, so a person's
 agent code reaches the model only through lake.
 
+**A turn's credential goes only to Lake at this service's own `LAKE_URL`** (agent-runtime#20). A
+per-turn agent's model client and its Lake client are both made from `LAKE_URL`; a turn's
+`lake_url` is ignored, so a caller cannot have the service send a bearer to a host it names. With
+`LAKE_URL` unset, or not an absolute `http(s)` address without user info, every per-turn turn is
+refused before any request is made.
+
 **A lake-wide library agent on this runtime** (`AGENT_PER_TURN_CREDENTIALS=1`, AgentCreator) also
 takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`, lake#269). `lake_bus.py`
 long-polls `receive_agent_tasks` through lake with the agent's own bus credential
@@ -185,7 +191,8 @@ contract against Lake's OpenAPI and Lake-derived reads and proposals, the five o
 under Lake's names and their direct engine actions, solution grants and per-turn registry reads
 (a workspace without Orama's catalogue included), App/build reads and exact proposals, an engine
 without the solution registry, holdout refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
-observations, a job that leaves a trace without the key, and the release (`tests/test_release.py`:
+observations, a job that leaves a trace without the key, a turn's credential sent only to
+`LAKE_URL` (`tests/test_turn_destinations.py`), and the release (`tests/test_release.py`:
 the version in `pyproject.toml` has release notes and `/healthz` reports it).
 
 ## Known failures and limits
