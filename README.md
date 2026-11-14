@@ -150,6 +150,16 @@ Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, 
 agent's lake key), `CUSTOMER_ID`, `WORKSPACE_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,
 `AGENT_MODEL` (default `gpt-5.5`), `TRACE_DIR`, `PORT`.
 
+**A service's conversation memory is bounded** (agent-runtime#25, LSR-076; `conversations.py`, ported
+from agent-ask-orama). It keeps at most `AGENT_CONVERSATIONS` conversations (default 256), each at
+most `AGENT_CONVERSATION_TURNS` turns (20) and `AGENT_CONVERSATION_BYTES` (1 MiB), all of them at most
+`AGENT_CONVERSATIONS_BYTES` (64 MiB), and drops one idle for `AGENT_CONVERSATION_IDLE_SECONDS` (3600).
+The oldest whole turns go first and the system message stays. A turn that fails leaves nothing of
+itself behind. A bus turn continues only the conversation its prior turn left in the same account and
+workspace: the key is what Lake's claim reply says of the task, plus the body's `prior_turn`, never
+the `conversation_id` the body names (LSR-008). A direct `/v1/turn` turn is kept under the
+`conversation_id` it names, apart from every bus turn.
+
 **The model is reached through lake** (lake#248, lake `docs/api/model-gateway.md`). Every model call
 goes to `<LAKE_URL>/openai/v1` with the run's own lake key as the API key (`model.py`): a launch's
 `LAKE_TOKEN`, or, for a per-turn agent, the turn's `lake_token`. Lake sends it to the provider with
@@ -167,8 +177,12 @@ refused before any request is made.
 **A lake-wide library agent on this runtime** (`AGENT_PER_TURN_CREDENTIALS=1`, AgentCreator) also
 takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`, lake#269). `lake_bus.py`
 long-polls `receive_agent_tasks` through lake with the agent's own bus credential
-(`AGENT_BUS_TOKEN`, `AGENT_BUS_AGENT`). It claims each task, answers it as `/v1/turn` would, and
-publishes `progress`, then the answer or `failed`. A person's own agent never takes tasks from the
+(`AGENT_BUS_TOKEN`, `AGENT_BUS_AGENT`). It claims a task only when a worker is free to run it at
+once, answers it as `/v1/turn` would, and publishes `progress`, then the answer or `failed`
+(agent-runtime#24, LSR-075). While every worker is busy it receives nothing, so a task it cannot run
+stays unclaimed on the bus for another replica. `AGENT_BUS_WORKERS` (default 4) run at once; one
+customer holds at most `AGENT_BUS_TENANT_WORKERS` (default one fewer), and a freed worker goes to the
+waiting customer holding the fewest. At most 256 dispatch rows wait, never a claimed body. A person's own agent never takes tasks from the
 bus: the operator gives it no bus credential.
 
 An entrypoint answers a string, a `Result`, or `{"reply": <words>, "result": {...}}`: the words for
@@ -206,7 +220,8 @@ under Lake's names and their direct engine actions, solution grants and per-turn
 (a workspace without Orama's catalogue included), App/build reads and exact proposals, an engine
 without the solution registry, holdout refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
 observations, a job that leaves a trace without the key, a turn's credential sent only to
-`LAKE_URL` (`tests/test_turn_destinations.py`), and the release (`tests/test_release.py`:
+`LAKE_URL` (`tests/test_turn_destinations.py`), the bus's back-pressure and per-customer share
+(`tests/test_bus_backpressure.py`), the conversation memory's limits (`tests/test_conversations.py`), and the release (`tests/test_release.py`:
 the version in `pyproject.toml` has release notes and `/healthz` reports it).
 
 ## Known failures and limits

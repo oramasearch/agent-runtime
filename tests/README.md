@@ -1,6 +1,7 @@
 # Runtime tests
 
-Run `uv run pytest` for the full suite. The tests use fake Lake transports and scripted model
+Run `uv run pytest` for the full suite. `test_bus_backpressure.py` (LSR-075) and
+`test_conversations.py` (LSR-076) are ported from agent-ask-orama. The tests use fake Lake transports and scripted model
 replies; they do not need a running Lake or model service.
 
 `test_dataset_work_area.py` checks database-qualified identity, allowed aliases, malformed grants
