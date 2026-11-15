@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "The blank Python agent: loads a user-created agent from Zetta or a lake repository and runs it"
 readme = "README.md"
 authors = [
-    { name = "Orama Search Inc." }
+    { name = "OramaSearch, Inc." }
 ]
 requires-python = ">=3.12"
 dependencies = [
