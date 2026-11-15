@@ -678,8 +678,8 @@ def test_every_model_call_goes_through_lakes_gateway_with_the_runs_key(monkeypat
             "usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}})
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.setattr(runner, "gateway_client", lambda url, token: model.gateway_client(
-        url, token, http_client=httpx.Client(transport=httpx.MockTransport(gateway))))
+    monkeypatch.setattr(runner, "gateway_client", lambda url, token, **kw: model.gateway_client(
+        url, token, http_client=httpx.Client(transport=httpx.MockTransport(gateway)), **kw))
     # A per-turn agent (AgentCreator) uses the key of whoever sent the turn, at this service's
     # LAKE_URL; the turn's own lake_url is never used (agent-runtime#20).
     monkeypatch.setenv("LAKE_URL", "http://lake:8080")
