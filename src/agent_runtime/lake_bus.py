@@ -6,8 +6,12 @@ bus through lake, with its own bus credential (`AGENT_BUS_TOKEN`, minted by the 
 this agent alone):
 
 1. `receive_agent_tasks` long-polls for new tasks;
-2. `claim_agent_task` takes one (exactly one claim wins) and answers the turn's body with the
-   task's own credential in it;
+2. `claim_agent_task` takes one (exactly one claim wins), `credentials: by_reference` (lake#871):
+   Lake answers the turn's body with no credential in it, and the turn calls Lake with this
+   agent's bus credential and the header `X-Lake-Agent-Task: <task id>`, which Lake honours only
+   while the task is claimed and Running on this agent (`task_credentials`). A Lake from before
+   lake#871 refuses the field; the claim is then asked again without it and the body carries the
+   task's own credential, as before;
 3. the turn runs, and `publish_agent_event` reports `progress`, then the `result` or `failed`.
 
 The same file is in every library agent (agent-ask-orama, agent-project, agent-autosuggest,
@@ -47,6 +51,51 @@ class BusError(Exception):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(f"{code}: {message}")
         self.code = code
+        self.message = message
+
+
+# Task credentials by reference (lake#871, lake docs/api/agent-bus.md, "Task credentials by
+# reference"): a claim asks Lake to keep the task's credential, so this process, which serves every
+# tenant, never holds one. Each call made for the task carries this agent's bus credential and
+# TASK_HEADER, naming the task; Lake acts as the task only while it is claimed and Running here.
+TASK_HEADER = "X-Lake-Agent-Task"
+BY_REFERENCE = "by_reference"
+# The body fields Lake fills with the task's credential ("{{credential}}" at dispatch).
+CREDENTIAL_FIELDS = ("lake_token", "zetta_token")
+
+
+def refuses_by_reference(error: BusError) -> bool:
+    """A Lake from before lake#871 refuses the claim's `credentials` field as unexpected, before
+    it claims anything, so the claim can be asked again without it."""
+    return error.code == "invalid_input" and "credentials" in error.message
+
+
+def task_credentials(token: str, claimed: dict[str, Any]) -> dict[str, Any]:
+    """The claimed task's body, with the credential its calls to Lake use.
+
+    Claimed by reference, Lake answered every credential field empty: they are filled with this
+    agent's bus credential (`token`), and `lake_headers` holds `X-Lake-Agent-Task: <task id>`,
+    which every call made for the task sends with it. Claimed with the credential in the body (a
+    Lake from before lake#871), the body is used as it came, as before.
+    """
+    body = dict(claimed.get("body") or {})
+    if claimed.get("credentials") != BY_REFERENCE:
+        return body
+    for name in CREDENTIAL_FIELDS:
+        if name in body:
+            body[name] = token
+    body["lake_headers"] = {TASK_HEADER: str(claimed["task_id"])}
+    return body
+
+
+def task_headers(body: dict[str, Any]) -> dict[str, str]:
+    """The headers a turn sends with its credential on every call to Lake: `X-Lake-Agent-Task`
+    for a task claimed by reference (`task_credentials`), none for any other turn."""
+    headers = body.get("lake_headers")
+    if not isinstance(headers, dict):
+        return {}
+    value = headers.get(TASK_HEADER)
+    return {TASK_HEADER: value} if isinstance(value, str) and value else {}
 
 
 class LakeBus:
@@ -85,10 +134,17 @@ class LakeBus:
         return list(value.get("tasks") or []), int(value.get("next_sequence") or from_sequence)
 
     def claim(self, task_id: str) -> dict[str, Any] | None:
-        """The claimed task, or None when another replica took it first."""
+        """The claimed task, or None when another replica took it first. Asked by reference
+        (lake#871); a Lake that refuses that is asked again for the credential in the body."""
+        arguments = {"task_id": task_id, "agent": self.agent}
         try:
-            return self.call("claim_agent_task", {"task_id": task_id, "agent": self.agent},
-                             read=False)
+            try:
+                return self.call("claim_agent_task", {**arguments, "credentials": BY_REFERENCE},
+                                 read=False)
+            except BusError as error:
+                if not refuses_by_reference(error):
+                    raise
+            return self.call("claim_agent_task", arguments, read=False)
         except BusError as error:
             if error.code in ("conflict", "not_found"):
                 return None
@@ -116,7 +172,7 @@ def run_task(bus: LakeBus, handle: Callable[[dict[str, Any]], dict[str, Any]],
     except BusError as error:
         _log(task=task_id, progress_not_published=str(error))
     try:
-        answer = handle(claimed.get("body") or {})
+        answer = handle(task_credentials(bus.token, claimed))
     except Exception as error:  # a failed turn is an answer, not a dead worker
         answer = {"ok": False, "error": f"{type(error).__name__}: {error}"}
     if answer.get("ok"):

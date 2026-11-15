@@ -8,3 +8,9 @@ and selectors, response filtering, both search routes, and refusal of tools with
 dataset relationship. It also covers granted pipelines, MCP, and definition tools so those paths
 cannot reintroduce unrestricted model calls. `test_skills.py` checks the OpenAPI/skill contract;
 its bare dataset grant refers only to Lake's default `datasets` database.
+
+`test_by_reference.py` (lake#871) claims by reference: the claim asks `credentials: by_reference`,
+the turn gets the bus credential and `X-Lake-Agent-Task`, every per-turn Lake call and model call
+sends both, and no bus call sends the header. Against a Lake from before lake#871, which refuses the
+field, the claim is asked again without it and the body's own credential is used with no task
+header; any other refusal is not retried.

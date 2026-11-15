@@ -18,8 +18,12 @@ def gateway_url(lake_url: str) -> str:
 
 
 def gateway_client(lake_url: str, lake_token: str,
-                   http_client: httpx.Client | None = None) -> OpenAI:
-    """An OpenAI client whose every call goes through lake for this run."""
+                   http_client: httpx.Client | None = None,
+                   headers: dict[str, str] | None = None) -> OpenAI:
+    """An OpenAI client whose every call goes through lake for this run. `headers` go with every
+    call: a turn claimed by reference sends `X-Lake-Agent-Task` with the bus credential as its key
+    (lake#871, `lake_bus.task_credentials`)."""
     if not lake_url or not lake_token:
         raise ValueError("a model call needs lake's URL and the run's lake credential")
-    return OpenAI(base_url=gateway_url(lake_url), api_key=lake_token, http_client=http_client)
+    return OpenAI(base_url=gateway_url(lake_url), api_key=lake_token, http_client=http_client,
+                  default_headers=dict(headers or {}) or None)

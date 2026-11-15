@@ -171,6 +171,16 @@ long-polls `receive_agent_tasks` through lake with the agent's own bus credentia
 publishes `progress`, then the answer or `failed`. A person's own agent never takes tasks from the
 bus: the operator gives it no bus credential.
 
+**No task credential reaches this process** (lake#871). Each claim asks for `credentials:
+by_reference`: Lake keeps the task's credential and answers the body without it. Every call the
+turn makes to Lake (the per-turn Lake client's OpenAPI and capability calls, and its model calls
+through the gateway) then carries the agent's bus credential and the header `X-Lake-Agent-Task:
+<task id>`, which Lake honours only while that task is claimed and `Running` on this agent. The
+bus calls themselves never send the header, and neither does a launch's own `LAKE_TOKEN`. A Lake
+from before lake#871 refuses the `credentials` field before claiming anything; the claim is then
+asked again without it, and the body's own `lake_token` is used as before, with no task header.
+Lake removes the in-body mode once every library agent claims by reference.
+
 An entrypoint answers a string, a `Result`, or `{"reply": <words>, "result": {...}}`: the words for
 a person and a structured answer for an API caller, returned beside `reply` as `result`.
 

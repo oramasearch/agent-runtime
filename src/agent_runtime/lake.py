@@ -41,14 +41,17 @@ class Lake:
 
     def __init__(self, base_url: str, token: str, customer_id: str,
                  transport: httpx.BaseTransport | None = None, timeout: float = 120.0,
-                 workspace_id: str = "") -> None:
+                 workspace_id: str = "", headers: dict[str, str] | None = None) -> None:
         self.base_url = base_url.rstrip("/")
         self.customer_id = customer_id
         # The launch's workspace (WORKSPACE_ID). A launch's LAKE_URL already ends in /w/<id>, from
         # which lake takes it too; sent explicitly it must match.
         self.workspace_id = workspace_id
+        # `headers` go with every call: a per-turn agent's turn claimed by reference sends
+        # `X-Lake-Agent-Task` with the bus credential as its token (lake#871,
+        # `lake_bus.task_credentials`).
         self.client = httpx.Client(base_url=self.base_url,
-                                   headers={"Authorization": f"Bearer {token}"},
+                                   headers={**(headers or {}), "Authorization": f"Bearer {token}"},
                                    timeout=timeout, transport=transport)
 
     def close(self) -> None:

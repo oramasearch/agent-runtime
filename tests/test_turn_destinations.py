@@ -32,8 +32,8 @@ def sent(monkeypatch):
         return real(*args, **kwargs)
 
     monkeypatch.setattr(runner, "Lake", lake)
-    monkeypatch.setattr(runner, "gateway_client", lambda url, token: model.gateway_client(
-        url, token, http_client=httpx.Client(transport=httpx.MockTransport(answer))))
+    monkeypatch.setattr(runner, "gateway_client", lambda url, token, **kw: model.gateway_client(
+        url, token, http_client=httpx.Client(transport=httpx.MockTransport(answer)), **kw))
     return requests
 
 

@@ -14,7 +14,7 @@ Configuration is the environment the operator sets for a launch (orama-operator#
 
 The model is reached through lake's model gateway (lake#248, `model.py`): `<LAKE_URL>/openai/v1`
 with the run's own lake key (`LAKE_TOKEN`, or a per-turn agent's turn `lake_token`) as the API key,
-so lake counts every call's tokens in the run's workspace. The runtime holds no provider key, and
+plus `X-Lake-Agent-Task` for a bus turn claimed by reference (lake#871), so lake counts every call's tokens in the run's workspace. The runtime holds no provider key, and
 neither does the agent code it runs: an entrypoint's `context.client` is that same client.
 """
 
@@ -233,8 +233,11 @@ def per_turn(loaded: Loaded, turn: dict[str, Any]) -> tuple[Loaded, Lake | None]
     token, customer = turn.get("lake_token") or "", turn.get("customer_id") or ""
     if not token or not customer:
         raise LoadError("this agent works per turn: the turn needs lake_token and customer_id")
+    # A turn claimed by reference (lake#871) carries the bus credential as `lake_token` and names
+    # its task with `X-Lake-Agent-Task` on every call; any other turn sends no task header.
     lake = Lake(lakes_url(), token, customer,
-                workspace_id=turn.get("workspace_id") or "")
+                workspace_id=turn.get("workspace_id") or "",
+                headers=lake_bus.task_headers(turn))
     try:
         lake_openapi = lake.openapi()
     except Exception:  # a workspace that is not ready still gets an answer
@@ -249,7 +252,8 @@ def turn_model(model_client: OpenAI | None, turn: dict[str, Any]) -> OpenAI:
     `LAKE_URL`; the turn's `lake_url` is ignored (agent-runtime#20)."""
     if model_client is not None:
         return model_client
-    return gateway_client(lakes_url(), turn.get("lake_token") or "")
+    return gateway_client(lakes_url(), turn.get("lake_token") or "",
+                          headers=lake_bus.task_headers(turn))
 
 
 def health(loaded: Loaded) -> dict[str, Any]:
