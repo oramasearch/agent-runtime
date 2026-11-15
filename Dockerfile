@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
-# agent-runtime (zetta#1016): the one image every user-created Python agent runs on. Private on
-# Docker Hub as oramasearch/agent-runtime. The agent itself is loaded at start from Zetta or a lake
+# agent-runtime: the one image every user-created Python agent runs on, published on Docker Hub
+# as oramasearch/agent-runtime. The agent itself is loaded at start from Zetta or a lake
 # repository, so no agent ever needs an image of its own.
 FROM python:3.12-slim AS build
 COPY --from=ghcr.io/astral-sh/uv:0.11.7 /uv /usr/local/bin/uv

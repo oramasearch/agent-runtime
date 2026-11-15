@@ -1,6 +1,6 @@
 # The `mcp:<prefix>` skill
 
-**lake#652, decision 60.** A workspace in lake is the client of remote MCP servers (lake
+A workspace in lake is the client of remote MCP servers (lake
 `docs/api/mcp-connections.md`). A user-built agent reaches one connection's tools when its record's
 `skills` carry `mcp:<prefix>`, the connection's prefix in lake (the workspace engine accepts the
 skill from zetta's `issue-652-mcp-skills` change). Lake's *Create an agent for this connection*
