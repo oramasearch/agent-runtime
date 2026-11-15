@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The release this tree is: its version, read from the code, has release notes, and the running
 service reports it on `GET /healthz`. Never repeat the number here."""
 

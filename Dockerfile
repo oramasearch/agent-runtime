@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
 # agent-runtime: the one image every user-created Python agent runs on, published on Docker Hub
 # as oramasearch/agent-runtime. The agent itself is loaded at start from Zetta or a lake
+
+# SPDX-License-Identifier: MIT
+
+# agent-runtime (zetta#1016): the one image every user-created Python agent runs on. Private on
+# Docker Hub as oramasearch/agent-runtime. The agent itself is loaded at start from Zetta or a lake
 # repository, so no agent ever needs an image of its own.
 # Bases are pinned by their multi-platform index digest (lake#1003); a new base is a reviewed
 # change of the digest, not a moved tag.

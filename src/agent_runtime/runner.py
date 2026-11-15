@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The two modes, and the trace every run leaves.
 
 **job** runs one task and exits: the input is `AGENT_INPUT` (JSON), the result goes to stdout and

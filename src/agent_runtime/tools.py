@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The tools a user-created agent gets, derived rather than written.
 
 Four sources, one list:

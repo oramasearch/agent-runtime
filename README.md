@@ -229,3 +229,9 @@ the version in `pyproject.toml` has release notes and `/healthz` reports it).
  and the live proofs in lake's `tools/e2e/agents.mjs`.
 - A conversation lives in the service's memory; restarting the service forgets it.
 - A job waits at most ten minutes for a Pipeline run, then returns the run id to poll.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Third-party components and their licenses are in
+[THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES). Contributions are welcome under the Developer
+Certificate of Origin; see [CONTRIBUTING.md](CONTRIBUTING.md).

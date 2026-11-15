@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The skills a person grants a user-built agent, and what each one lets it reach.
 
 A skill names Lake capabilities (``/v1/<name>``, Lake's OpenAPI); it never carries a schema. Every

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The skills contract: every Lake capability is in a skill, every agent's App set, or the
 never-for-agents list, and a skill's tools are derived from Lake's OpenAPI (agent-runtime#7).
 

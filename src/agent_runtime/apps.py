@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """App and build capability context for one custom-agent turn."""
 
 from __future__ import annotations

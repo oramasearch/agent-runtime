@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """Everything the runtime reaches, it reaches through lake.
 
 A user-created agent never holds a workspace's admin token. Every call, the workspace engine's
