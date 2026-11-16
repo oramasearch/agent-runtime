@@ -1,7 +1,7 @@
 # Solution capabilities
 
 Custom agents use the solution foundation through the same derived tool list as every other
-workspace operation, under Lake's names (lake#674, agent-runtime#11). The runtime does not carry a
+workspace operation, under Lake's names. The runtime does not carry a
 catalogue of S- or B-identifiers. At the start of each turn it refreshes Lake's OpenAPI, calls the
 granted `list_solutions`, and calls `get_solution` (`{id}`) for every identifier that response
 contains: Orama's catalogue and the workspace's own solutions (lake `docs/api/solutions.md`). The full records are placed in the

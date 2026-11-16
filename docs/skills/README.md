@@ -2,7 +2,7 @@
 
 A **skill** is what a person grants their agent: *Search data*, *Use drives*, *Design pipelines*.
 `src/agent_runtime/skills.py` says what each skill lets an agent reach; the agent's tools are then
-derived from OpenAPI documents at run time, never from a schema written here (agent-runtime#7).
+derived from OpenAPI documents at run time, never from a schema written here.
 
 ## What a skill grants
 
@@ -53,7 +53,7 @@ needed to confine custom Python entrypoints.
 
 ## Direct actions
 
-Decision (agent-runtime#11). Before, the five original skills ran every engine action they granted
+Decision. Before, the five original skills ran every engine action they granted
 directly, while every change the newer skills grant is a proposal. Each of those engine actions was
 reviewed against one question: does the engine's own policy already decide whether the call may
 take effect, so that a person confirming it first adds nothing the engine does not check?
