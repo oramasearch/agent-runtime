@@ -10,7 +10,7 @@ The specialized agents of the Agent Library (Ask Orama, the Project Agent, Auto-
 separate repos with their own images; this runtime is for the agents people build in Train →
 Agents or with the Agent Factory.
 
-**Current release: [v0.3.0](docs/releases/v0.3.0.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
+**Current release: [v0.3.1](docs/releases/v0.3.1.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
 
 ## What it loads
 
