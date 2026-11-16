@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The solution catalogue observed through an agent's granted tools for one turn.
 
 Lake's `list_solutions` answers Orama's catalogue (the engine's, read-only) and the workspace's own,

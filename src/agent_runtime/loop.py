@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The run: a tool-calling loop on the OpenAI SDK, or the definition's own entrypoint.
 
 The default loop is the one every form-built agent gets: the instructions as the system prompt,

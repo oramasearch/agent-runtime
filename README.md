@@ -1,8 +1,7 @@
 # agent-runtime
 
 The **blank Python agent**: one image, `oramasearch/agent-runtime`, that runs every **user-created**
-agent in lake ([lake#228](https://github.com/oramasearch/lake/issues/228),
-[zetta#1016](https://github.com/oramasearch/zetta/issues/1016)). It holds no agent of its own: at
+agent in lake. It holds no agent of its own: at
 start it reads the agent's `AgentRecord` from the customer's workspace, loads its instructions and
 code, derives its tools, and runs it on the OpenAI SDK pointed at lake's model gateway. **New
 agents are data, not images.**
@@ -11,11 +10,11 @@ The specialized agents of the Agent Library (Ask Orama, the Project Agent, Auto-
 separate repos with their own images; this runtime is for the agents people build in Train →
 Agents or with the Agent Factory.
 
-**Current release: [v0.2.0](docs/releases/v0.2.0.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
+**Current release: [v0.3.0](docs/releases/v0.3.0.md)** (all releases: [`docs/releases/`](docs/releases/README.md)).
 
 ## What it loads
 
-The record (zetta#1015) carries Studio's shape (purpose, work area, manifesto, goal, skills,
+The record carries Studio's shape (purpose, work area, manifesto, goal, skills,
 trigger), the granted Pipelines, and a `definition` from one of two sources:
 
 | Source | Where the files are |
@@ -48,16 +47,16 @@ module is not in the definition, a path outside the definition, an agent that is
    - **Apps and builds** for every agent. It may read Apps, logs, builds, and their retained event
      streams; create, deploy, rollback, lifecycle, scale, binding, and build operations are
      proposal-only tools. See [`docs/apps/README.md`](docs/apps/README.md).
-   - **What its skills grant** (`skills.py`, agent-runtime#7, agent-runtime#11). A capability
+   - **What its skills grant** (`skills.py`). A capability
      whose `x-lake-action` is `read` is a tool that calls Lake; any other is a **proposal**: the
      exact capability and input are returned for a person to confirm in Lake and are never sent by
      this runtime. The exception is a skill's **direct** engine actions (`check_pipeline`,
      `start_run`, `generate_dataset`, `decide`, `record_outcome`), which the runtime calls and
      the engine's own policy governs. See [`docs/skills/README.md`](docs/skills/README.md).
-2. **Granted Pipelines** (lake#238): each becomes `pipeline_<graph>`, which checks the correctness
+2. **Granted Pipelines**: each becomes `pipeline_<graph>`, which checks the correctness
    gate (`check_pipeline`; a blocked gate runs nothing and names the failing checks), runs it
    (`start_run`), waits up to ten minutes and returns the run's report.
-3. **MCP connections** (lake#652): each `mcp:<prefix>` skill grants the allowed tools of one of
+3. **MCP connections**: each `mcp:<prefix>` skill grants the allowed tools of one of
    the workspace's MCP connections in lake, as `<prefix>__<tool>` with the server's own schema.
    Reads run through lake's `read_mcp_tool`; a change runs through `call_mcp_tool` only where a
    person auto-approved that tool for this agent, and is otherwise an exact `call_mcp_tool`
@@ -146,9 +145,19 @@ attempted. See [`docs/solutions/README.md`](docs/solutions/README.md).
 | `job` | Reads `AGENT_INPUT` (JSON), runs, prints the result, writes a ≤ 4 KiB summary to `/dev/termination-log` for the operator. Exit `0` answered, `2` finished without an answer, `1` could not run |
 | `service` | `POST /v1/turn` (`conversation_id`, `message`) continues that conversation; `GET /healthz` lists the tools, the model and the runtime's version. `AGENT_SERVICE_TOKEN` is required as a bearer, compared in constant time (`401` otherwise); unset or empty, the route fails closed and refuses every turn with `503` |
 
-Environment (set by the operator for a launch, orama-operator#185): `LAKE_URL`, `LAKE_TOKEN` (the
+Environment (set by the operator for a launch): `LAKE_URL`, `LAKE_TOKEN` (the
 agent's lake key), `CUSTOMER_ID`, `WORKSPACE_ID`, `AGENT_ID`, `AGENT_MODE`, `AGENT_INPUT`,
 `AGENT_MODEL` (default `gpt-5.5`), `TRACE_DIR`, `PORT`.
+
+**A service's conversation memory is bounded** (agent-runtime#25, LSR-076; `conversations.py`, ported
+from agent-ask-orama). It keeps at most `AGENT_CONVERSATIONS` conversations (default 256), each at
+most `AGENT_CONVERSATION_TURNS` turns (20) and `AGENT_CONVERSATION_BYTES` (1 MiB), all of them at most
+`AGENT_CONVERSATIONS_BYTES` (64 MiB), and drops one idle for `AGENT_CONVERSATION_IDLE_SECONDS` (3600).
+The oldest whole turns go first and the system message stays. A turn that fails leaves nothing of
+itself behind. A bus turn continues only the conversation its prior turn left in the same account and
+workspace: the key is what Lake's claim reply says of the task, plus the body's `prior_turn`, never
+the `conversation_id` the body names (LSR-008). A direct `/v1/turn` turn is kept under the
+`conversation_id` it names, apart from every bus turn.
 
 **The model is reached through lake** (lake#248, lake `docs/api/model-gateway.md`). Every model call
 goes to `<LAKE_URL>/openai/v1` with the run's own lake key as the API key (`model.py`): a launch's
@@ -158,17 +167,21 @@ the account's monthly model-token limit is used up. The runtime holds no `OPENAI
 neither can the code it runs: an entrypoint's `context.client` is that same client, so a person's
 agent code reaches the model only through lake.
 
-**A turn's credential goes only to Lake at this service's own `LAKE_URL`** (agent-runtime#20). A
+**A turn's credential goes only to Lake at this service's own `LAKE_URL`**. A
 per-turn agent's model client and its Lake client are both made from `LAKE_URL`; a turn's
 `lake_url` is ignored, so a caller cannot have the service send a bearer to a host it names. With
 `LAKE_URL` unset, or not an absolute `http(s)` address without user info, every per-turn turn is
 refused before any request is made.
 
 **A lake-wide library agent on this runtime** (`AGENT_PER_TURN_CREDENTIALS=1`, AgentCreator) also
-takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`, lake#269). `lake_bus.py`
+takes its turns from lake's agent bus (lake `docs/api/agent-bus.md`). `lake_bus.py`
 long-polls `receive_agent_tasks` through lake with the agent's own bus credential
-(`AGENT_BUS_TOKEN`, `AGENT_BUS_AGENT`). It claims each task, answers it as `/v1/turn` would, and
-publishes `progress`, then the answer or `failed`. A person's own agent never takes tasks from the
+(`AGENT_BUS_TOKEN`, `AGENT_BUS_AGENT`). It claims a task only when a worker is free to run it at
+once, answers it as `/v1/turn` would, and publishes `progress`, then the answer or `failed`
+(agent-runtime#24, LSR-075). While every worker is busy it receives nothing, so a task it cannot run
+stays unclaimed on the bus for another replica. `AGENT_BUS_WORKERS` (default 4) run at once; one
+customer holds at most `AGENT_BUS_TENANT_WORKERS` (default one fewer), and a freed worker goes to the
+waiting customer holding the fewest. At most 256 dispatch rows wait, never a claimed body. A person's own agent never takes tasks from the
 bus: the operator gives it no bus credential.
 
 An entrypoint answers a string, a `Result`, or `{"reply": <words>, "result": {...}}`: the words for
@@ -181,7 +194,7 @@ the answer. Traces never carry a credential.
 
 ```sh
 uv sync
-LAKE_URL=https://lake.oramadev.net LAKE_TOKEN=... CUSTOMER_ID=... AGENT_ID=... \
+LAKE_URL=https://lake.example.com LAKE_TOKEN=... CUSTOMER_ID=... AGENT_ID=... \
   AGENT_INPUT='"What data is in this workspace?"' uv run agent-runtime --mode job
 # or with a record file instead of the workspace's:
 uv run agent-runtime --mode job --record record.json
@@ -189,14 +202,14 @@ uv run agent-runtime --mode job --record record.json
 
 ## Image
 
-Private on Docker Hub as `oramasearch/agent-runtime` (created private before the first push; an
-anonymous read answers 404). Built on the cluster BuildKit, never with Docker on a workstation:
+Published on Docker Hub as `oramasearch/agent-runtime`. The repository is its own build context
+(no named build contexts), so any BuildKit builder works:
 
 ```sh
-buildctl --addr "kube-pod://<buildkit pod>?context=orama-production-cluster-01&namespace=buildkit" build \
-  --frontend dockerfile.v0 --local context=. --local dockerfile=. --opt platform=linux/amd64 \
-  --output type=image,name=docker.io/oramasearch/agent-runtime:<tag>,push=true
+docker buildx build --platform linux/amd64 -t <registry>/agent-runtime:<tag> --push .
 ```
+
+The Dockerfile pins its bases by multi-platform index digest (lake#1003): `python:3.12-slim@sha256:5e2bdb1b…` for both stages and `ghcr.io/astral-sh/uv:0.11.7@sha256:240fb85a…`. Moving one is a reviewed change of its digest.
 
 ## Tests
 
@@ -206,12 +219,19 @@ under Lake's names and their direct engine actions, solution grants and per-turn
 (a workspace without Orama's catalogue included), App/build reads and exact proposals, an engine
 without the solution registry, holdout refusals, the work area, Pipeline tools (and a blocked gate), definition functions, the loop's
 observations, a job that leaves a trace without the key, a turn's credential sent only to
-`LAKE_URL` (`tests/test_turn_destinations.py`), and the release (`tests/test_release.py`:
+`LAKE_URL` (`tests/test_turn_destinations.py`), the bus's back-pressure and per-customer share
+(`tests/test_bus_backpressure.py`), the conversation memory's limits (`tests/test_conversations.py`), and the release (`tests/test_release.py`:
 the version in `pyproject.toml` has release notes and `/healthz` reports it).
 
 ## Known failures and limits
 
 - No eval scores yet: the runtime runs other people's agents, so its evals are the Agent Factory's
-  (zetta#1017) and the live proofs in lake's `tools/e2e/agents.mjs`.
+ and the live proofs in lake's `tools/e2e/agents.mjs`.
 - A conversation lives in the service's memory; restarting the service forgets it.
 - A job waits at most ten minutes for a Pipeline run, then returns the run id to poll.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Third-party components and their licenses are in
+[THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES). Contributions are welcome under the
+[Contributor License Agreement](CLA.md); see [CONTRIBUTING.md](CONTRIBUTING.md).

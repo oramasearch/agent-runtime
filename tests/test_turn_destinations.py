@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """A turn's credential goes only to Lake at LAKE_URL, never to an address the request names
 (agent-runtime#20)."""
 

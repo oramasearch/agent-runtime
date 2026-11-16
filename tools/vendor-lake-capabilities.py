@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+
 """Vendor Lake's capability list for the skills contract test (tests/test_skills.py).
 
 Reads Lake's OpenAPI (`/v1/openapi.json`) from a running Lake or a saved file and writes

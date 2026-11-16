@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The two modes, and the trace every run leaves.
 
 **job** runs one task and exits: the input is `AGENT_INPUT` (JSON), the result goes to stdout and
@@ -37,7 +39,7 @@ from urllib.parse import urlsplit
 
 from openai import OpenAI
 
-from agent_runtime import apps, definition, lake_bus
+from agent_runtime import apps, conversations, definition, lake_bus
 from agent_runtime.model import gateway_client
 from agent_runtime.lake import Lake, LoadError
 from agent_runtime.loop import Context, Result, run_entrypoint, run_loop, system_message
@@ -161,16 +163,57 @@ def job(record: dict[str, Any] | None = None) -> int:
     return code
 
 
-class Conversations:
-    """Each conversation's messages, so a turn continues the one before it."""
+def claimed_task(claim: object) -> tuple[str, str, str] | None:
+    """`(customer_id, workspace_id, task_id)` from a bus turn's claim (`lake_bus.turn_body`), or
+    None unless all three are non-empty strings."""
+    if not isinstance(claim, dict):
+        return None
+    owner = claim.get("customer_id"), claim.get("workspace_id"), claim.get("task_id")
+    if not all(isinstance(part, str) and part for part in owner):
+        return None
+    return owner
+
+
+def prior_task_id(turn: dict[str, Any]) -> str:
+    """The task id of the turn Lake says this one follows (`prior_turn`), or ""."""
+    prior = turn.get("prior_turn")
+    task_id = prior.get("task_id") if isinstance(prior, dict) else None
+    return task_id if isinstance(task_id, str) else ""
+
+
+class TurnMemory:
+    """Each conversation's messages, so a turn continues the one before it, bounded by
+    `conversations.Conversations` (agent-runtime#25, LSR-076).
+
+    A bus turn continues only the conversation its prior turn left in the same account and
+    workspace: the key is what Lake's claim reply says of the task, and the prior turn is the
+    body's `prior_turn`, which Lake attaches only for the person who asked it. The conversation id
+    a bus turn names is never the key (LSR-008). A direct `/v1/turn` turn has no claim; it is kept
+    under the conversation id it names, in its own namespace, so it can never reach a bus turn's
+    conversation. Who may make a direct turn is agent-runtime#14.
+    """
 
     def __init__(self) -> None:
         self.lock = threading.Lock()
-        self.messages: dict[str, list[dict[str, Any]]] = {}
+        self.conversations = conversations.Conversations.from_env()
 
-    def history(self, conversation_id: str, loaded: Loaded) -> list[dict[str, Any]]:
+    def history(self, turn: dict[str, Any], conversation_id: str,
+                loaded: Loaded) -> list[dict[str, Any]]:
+        owner = claimed_task(turn.get("claim"))
         with self.lock:
-            return self.messages.setdefault(conversation_id, [system_message(loaded.agent)])
+            if owner is not None:
+                account, workspace, _ = owner
+                history = self.conversations.pop((account, workspace, prior_task_id(turn)), None)
+                if history is None:
+                    history = [system_message(loaded.agent)]
+                self.conversations[owner] = history
+                return history
+            key = ("direct", conversation_id)
+            history = self.conversations.get(key)
+            if history is None:
+                history = [system_message(loaded.agent)]
+                self.conversations[key] = history
+            return history
 
 
 def answer(loaded: Loaded, history: list[dict[str, Any]], message: str, turn: dict[str, Any],
@@ -289,7 +332,7 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
         except LoadError as error:
             print(json.dumps({"agent-runtime": "cannot load", "error": str(error)}), flush=True)
             return 1
-    conversations = Conversations()
+    memory = TurnMemory()
     per_turn_credentials = os.environ.get("AGENT_PER_TURN_CREDENTIALS") == "1"
     # A person's own agent calls its model with its launch's key; a per-turn agent with each
     # turn's (lake#248).
@@ -303,12 +346,15 @@ def serve(record: dict[str, Any] | None = None, client: OpenAI | None = None) ->
         if not message:
             return {"ok": False, "error": "a turn needs a message"}
         conversation = turn.get("conversation_id") or str(uuid.uuid4())
-        history = conversations.history(conversation, loaded)
+        history = memory.history(turn, conversation, loaded)
+        kept = len(history)
         turn_lake = None
         try:
             turn_loaded, turn_lake = per_turn(loaded, turn)
             result = answer(turn_loaded, history, message, turn, turn_model(model_client, turn))
         except Exception as error:
+            # A turn that fails leaves nothing of itself in the conversation (LSR-076).
+            del history[kept:]
             result = {"error": f"{type(error).__name__}: {error}"}
         finally:
             if turn_lake is not None:

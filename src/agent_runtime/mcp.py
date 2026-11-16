@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The `mcp:<prefix>` skill: the allowed tools of one of the workspace's MCP connections (lake#652).
 
 Lake is the MCP client; the runtime never sees a connection's credential. It asks lake for the
