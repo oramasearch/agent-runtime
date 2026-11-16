@@ -2,17 +2,17 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "agent-runtime-8b6201e5476e",
-  "documentNamespace": "https://github.com/oramasearch/agent-runtime/sbom/8b6201e5476ed9ce48e93ceac0683b813c3fbc43",
+  "name": "agent-runtime-2df54b1b5905",
+  "documentNamespace": "https://github.com/oramasearch/agent-runtime/sbom/2df54b1b5905375f8f804b93f560de1bbda004d3",
   "creationInfo": {
-    "created": "2026-11-15T17:24:54Z",
+    "created": "2026-11-16T01:54:37Z",
     "creators": [
       "Organization: OramaSearch, Inc.",
       "Tool: tools/sbom.py",
       "Tool: syft"
     ],
     "licenseListVersion": "3.29",
-    "comment": "Made from source commit 8b6201e5476ed9ce48e93ceac0683b813c3fbc43 by tools/sbom.py."
+    "comment": "Made from source commit 2df54b1b5905375f8f804b93f560de1bbda004d3 by tools/sbom.py."
   },
   "documentDescribes": [
     "SPDXRef-DocumentRoot"
@@ -200,7 +200,7 @@
     {
       "name": "agent-runtime",
       "SPDXID": "SPDXRef-DocumentRoot",
-      "versionInfo": "8b6201e5476e",
+      "versionInfo": "2df54b1b5905",
       "downloadLocation": "git+https://github.com/oramasearch/agent-runtime.git",
       "homepage": "https://github.com/oramasearch/agent-runtime",
       "filesAnalyzed": false,
