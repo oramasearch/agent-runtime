@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The service's conversation memory, bounded (agent-runtime#25, LSR-076; ported from agent-ask-orama#44).
 
 A service-mode agent (Agent Creator, and every agent a person runs as a service) kept its

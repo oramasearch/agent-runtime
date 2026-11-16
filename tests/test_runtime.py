@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """agent-runtime without a network: lake is an httpx MockTransport answering the way Lake does
 (its named capabilities, the workspace engine's included, lake#674), the model a scripted client.
 The live run is the deploy's proof (lake#228)."""

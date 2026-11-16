@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """Loading an agent: its record, then its instructions and code.
 
 The record is the agent's `AgentRecord` in the workspace's Zetta (zetta#1015): Studio's shape

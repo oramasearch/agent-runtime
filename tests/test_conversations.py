@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """agent-runtime#25 (LSR-076, ported from agent-ask-orama#44): a service-mode agent's
 conversation memory is bounded by count, turns, bytes and idle time.
 """

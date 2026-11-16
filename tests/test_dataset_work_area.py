@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """Dataset work areas reject unprovable resources before Lake sees a call."""
 
 from __future__ import annotations

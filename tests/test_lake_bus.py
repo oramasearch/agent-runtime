@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The agent bus worker (lake docs/api/agent-bus.md): receive, claim, run, publish."""
 
 from __future__ import annotations

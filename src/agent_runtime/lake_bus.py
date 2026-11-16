@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """Take tasks from lake's agent bus and answer them (lake docs/api/agent-bus.md, lake#269).
 
 Lake publishes each turn a person asks of this agent on Zetta pub/sub (topic

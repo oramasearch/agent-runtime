@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The model, reached through lake's model gateway (lake#248, lake `docs/api/model-gateway.md`).
 
 Every model call this agent makes for a turn or run goes to lake at `<lake_url>/openai/v1`, with the

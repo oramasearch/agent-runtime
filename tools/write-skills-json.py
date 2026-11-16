@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+
 """Write skills.json: each skill with its label and the Lake capabilities it grants, split into
 reads (tools) and changes by Lake's own `x-lake-action` (tests/fixtures/lake-capabilities.json,
 vendored from Lake's OpenAPI). A change is a proposal, except the skill's `direct` engine actions,

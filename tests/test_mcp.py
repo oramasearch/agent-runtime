@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 """The `mcp:<prefix>` skill (lake#652): connected tools derived from lake, reads that run,
 auto-approved changes that run, and every other change an exact `call_mcp_tool` proposal that
 never reaches lake."""
