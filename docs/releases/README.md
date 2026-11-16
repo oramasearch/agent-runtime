@@ -11,6 +11,7 @@ tag and verified; it is never produced by a second build.
 
 | Release | Date | Summary |
 |---|---|---|
+| [v0.3.1](v0.3.1.md) | 2026-11-16 | A patch release: one clean Dockerfile header, with no internal references; nothing the runtime does changed |
 | [v0.3.0](v0.3.0.md) | 2026-11-16 | The MIT licence, a security policy and the public-export preparation; the bus consumer and conversation memory bounded; the image bases pinned by digest |
 | [v0.2.0](v0.2.0.md) | 2026-10-25 | A minor release of security fixes: the service token compared in constant time and required, a turn's credential sent only to `LAKE_URL`, and dataset-confined agents limited to reads that can be proven inside their dataset |
 | [v0.1.0](v0.1.0.md) | 2026-10-17 | The first release: the job and service modes, loading an agent from Zetta, a Lake repository or the image, tools derived from Lake's OpenAPI and twelve skills plus MCP connections, the model through Lake's gateway, AgentCreator's agent-bus client, and the image |
