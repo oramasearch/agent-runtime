@@ -3,16 +3,16 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "agent-runtime-v0.3.0",
-  "documentNamespace": "https://github.com/oramasearch/agent-runtime/sbom/8ee1325834c1f25e55cb67a0add6ef235fc5837b",
+  "documentNamespace": "https://github.com/oramasearch/agent-runtime/sbom/63718c742ebcbde4e7979eca424b50cab9827daf",
   "creationInfo": {
-    "created": "2026-11-16T07:18:59Z",
+    "created": "2026-11-16T07:21:49Z",
     "creators": [
       "Organization: OramaSearch, Inc.",
       "Tool: tools/sbom.py",
       "Tool: syft"
     ],
     "licenseListVersion": "3.29",
-    "comment": "Made from source commit 8ee1325834c1f25e55cb67a0add6ef235fc5837b by tools/sbom.py."
+    "comment": "Made from source commit 63718c742ebcbde4e7979eca424b50cab9827daf by tools/sbom.py."
   },
   "documentDescribes": [
     "SPDXRef-DocumentRoot"
